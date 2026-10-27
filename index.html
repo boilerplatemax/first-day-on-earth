@@ -9,2395 +9,1374 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#101018;
-    --panel:#1c2030;
-    --panel2:#262b40;
-    --ink:#f3f3e7;
-    --dim:#aab0c4;
-    --accent:#63d97a;
-    --crt:#153b1f;
-    --crtink:#8dffb0;
-    --danger:#e4473b;
-    --warn:#f4d24a;
-    --pix: 'Press Start 2P', ui-monospace, 'Courier New', monospace;
+    --ink:#f4f3ea; --dim:#aab0c4; --panel:#1b1f2e; --panel2:#262c40;
+    --accent:#6ee07f; --warn:#f6d24a; --danger:#e8503f;
+    --crt:#123524; --crtink:#9affc0;
+    --pix:'Press Start 2P', ui-monospace, 'Courier New', monospace;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--pix);color:var(--ink);}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--pix);color:var(--ink);-webkit-user-select:none;user-select:none;}
   #app{position:fixed;inset:0;background:#000;}
-  canvas#scene{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
-
-  /* overlay layer */
+  canvas#scene{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;cursor:crosshair;}
   #ui{position:absolute;inset:0;pointer-events:none;}
   #ui *{font-family:var(--pix);}
-  .panel{background:var(--panel);border:3px solid #000;box-shadow:4px 4px 0 #000;}
-  .chunk{border:3px solid #000;background:var(--panel);box-shadow:4px 4px 0 rgba(0,0,0,.6);}
+  .pe{pointer-events:auto;}
 
-  /* goal strip */
-  #goalStrip{
-    position:absolute;top:10px;left:50%;transform:translateX(-50%);
-    display:flex;gap:10px;align-items:center;font-size:11px;line-height:1.2;
-    background:var(--panel);border:3px solid #000;padding:8px 12px;color:var(--ink);
-    box-shadow:4px 4px 0 rgba(0,0,0,.6);max-width:92vw;flex-wrap:wrap;justify-content:center;
-  }
-  #goalStrip .sep{color:#555;}
-  #goalStrip .timer{color:var(--warn);}
-  #goalStrip .timer.low{color:var(--danger);}
-  #goalStrip .pieces{color:var(--accent);}
+  /* top strip: period + timer (left), suspicion (right) — minimal */
+  #goal{position:absolute;top:12px;left:14px;display:flex;gap:10px;align-items:center;font-size:12px;
+    background:var(--panel);border:3px solid #000;padding:8px 12px;box-shadow:3px 3px 0 rgba(0,0,0,.5);}
+  #goalTimer{color:var(--warn);} #goalTimer.low{color:var(--danger);}
+  #susp{position:absolute;top:12px;right:14px;width:170px;background:var(--panel);border:3px solid #000;padding:8px;box-shadow:3px 3px 0 rgba(0,0,0,.5);pointer-events:auto;}
+  #suspTop{display:flex;justify-content:space-between;font-size:9px;margin-bottom:5px;color:var(--dim);}
+  #suspBarO{height:14px;background:#0b0d16;border:2px solid #000;position:relative;}
+  #suspBar{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#4fae54,#f6d24a 55%,#e8503f);transition:width .3s;}
+  #suspVal{position:absolute;right:3px;top:0;line-height:14px;font-size:8px;text-shadow:1px 1px 0 #000;}
+  #suspTip{display:none;margin-top:6px;font-size:7px;line-height:1.6;color:var(--dim);}
+  #susp:hover #suspTip{display:block;}
 
-  /* suspicion */
-  #suspWrap{position:absolute;top:10px;right:10px;width:180px;pointer-events:auto;}
-  #suspBox{background:var(--panel);border:3px solid #000;padding:8px;box-shadow:4px 4px 0 rgba(0,0,0,.6);}
-  #suspHead{display:flex;align-items:center;gap:8px;font-size:10px;margin-bottom:6px;}
-  #antenna{font-size:16px;filter:drop-shadow(0 0 0 #000);transition:text-shadow .2s;}
-  #suspLabel{letter-spacing:1px;}
-  #suspBarOuter{height:16px;background:#0c0c14;border:2px solid #000;position:relative;overflow:hidden;}
-  #suspBarFill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#4fae54,#f4d24a 55%,#e4473b);transition:width .3s;}
-  #suspNum{position:absolute;right:3px;top:0;font-size:9px;line-height:16px;color:#fff;text-shadow:1px 1px 0 #000;}
-  #suspTip{display:none;margin-top:6px;font-size:8px;line-height:1.5;color:var(--dim);background:#0c0c14;border:2px solid #000;padding:6px;}
-  #suspBox:hover #suspTip{display:block;}
-  /* floating suspicion popups */
-  #popups{position:absolute;top:70px;right:10px;width:200px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-  .popup{font-size:9px;padding:5px 8px;border:2px solid #000;background:var(--panel2);box-shadow:3px 3px 0 rgba(0,0,0,.5);animation:floatUp 2.2s ease-out forwards;white-space:nowrap;}
-  .popup.up{color:#ffb4ac;} .popup.down{color:#b4ffc0;}
-  @keyframes floatUp{0%{opacity:0;transform:translateY(8px);}12%{opacity:1;transform:translateY(0);}80%{opacity:1;}100%{opacity:0;transform:translateY(-14px);}}
+  #popups{position:absolute;top:74px;right:14px;width:200px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .pop{font-size:9px;padding:5px 8px;border:2px solid #000;background:var(--panel2);box-shadow:2px 2px 0 rgba(0,0,0,.5);animation:fu 2.2s ease-out forwards;white-space:nowrap;}
+  .pop.up{color:#ffb4ac;} .pop.down{color:#b4ffc0;}
+  @keyframes fu{0%{opacity:0;transform:translateY(8px);}12%{opacity:1;transform:translateY(0);}80%{opacity:1;}100%{opacity:0;transform:translateY(-14px);}}
 
-  /* translator */
-  #translator{position:absolute;left:14px;bottom:14px;width:330px;max-width:46vw;pointer-events:auto;cursor:pointer;}
-  #transBody{background:#20160c;border:3px solid #000;padding:8px;box-shadow:5px 5px 0 rgba(0,0,0,.6);}
-  #transTop{display:flex;justify-content:space-between;align-items:center;font-size:8px;color:#d7b78a;margin-bottom:6px;}
-  #transScreen{position:relative;background:var(--crt);border:3px solid #061a0d;padding:10px;overflow:hidden;}
-  #transScreen:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0px,rgba(0,0,0,.18) 1px,transparent 2px,transparent 4px);}
-  #transScreen:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 26px rgba(0,0,0,.6);}
-  .transLine{position:relative;z-index:2;font-size:9px;line-height:1.5;color:var(--crtink);text-shadow:0 0 4px rgba(120,255,160,.5);}
-  .transLabel{font-size:8px;color:#5fdc86;opacity:.8;letter-spacing:1px;}
-  #humansWord{color:#c6ffd4;letter-spacing:2px;}
-  #humansWord.flick{animation:flick .18s steps(2) infinite;}
-  @keyframes flick{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
-  #transCaret{display:inline-block;width:7px;background:var(--crtink);animation:blink 1s steps(1) infinite;}
+  /* translator — central, prominent, bottom-center */
+  #translator{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(560px,86vw);pointer-events:auto;cursor:pointer;}
+  #trBody{background:#17110a;border:3px solid #000;padding:9px;box-shadow:0 5px 0 rgba(0,0,0,.6);}
+  #trHead{display:flex;justify-content:space-between;font-size:8px;color:#d7b78a;margin-bottom:7px;letter-spacing:1px;}
+  #trScreen{position:relative;background:var(--crt);border:3px solid #06160d;padding:12px 14px;overflow:hidden;}
+  #trScreen:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0,rgba(0,0,0,.14) 1px,transparent 2px,transparent 4px);}
+  .trRow{position:relative;z-index:2;}
+  .trLbl{font-size:8px;color:#5fdc86;opacity:.85;letter-spacing:1px;}
+  #trWord{font-size:15px;color:#d6ffe0;letter-spacing:3px;}
+  #trWord.flick{animation:flick .18s steps(2) infinite;}
+  @keyframes flick{50%{opacity:.5;}}
+  #trDesc{font-size:12px;line-height:1.6;color:var(--crtink);text-shadow:0 0 5px rgba(120,255,160,.45);margin-top:7px;min-height:38px;}
+  #trCaret{display:inline-block;width:8px;background:var(--crtink);animation:blink 1s steps(1) infinite;}
   @keyframes blink{50%{opacity:0;}}
-  #transHint{font-size:7px;color:#4c9c68;margin-top:6px;text-align:right;}
+  #trHint{font-size:7px;color:#4c9c68;margin-top:6px;text-align:right;}
 
-  /* control hints */
-  #controlHints{position:absolute;right:12px;bottom:14px;max-width:44vw;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
-  .hint{font-size:8px;background:var(--panel);border:2px solid #000;padding:5px 7px;color:var(--dim);box-shadow:3px 3px 0 rgba(0,0,0,.5);}
-  .hint b{color:var(--ink);}
-  .key{display:inline-block;background:#0c0c14;border:1px solid #555;padding:1px 4px;margin:0 1px;color:#fff;border-radius:2px;}
+  /* crayons — left edge vertical */
+  #crayons{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:auto;}
+  .cr{width:34px;height:26px;border:3px solid #000;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.5);position:relative;}
+  .cr.sel{outline:3px solid #fff;outline-offset:1px;}
+  /* tools — right edge vertical */
+  #tools{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:auto;align-items:stretch;}
+  .tool{font-size:8px;background:var(--panel);border:3px solid #000;color:var(--ink);padding:7px 6px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.5);text-align:center;min-width:46px;}
+  .tool.sel{border-color:var(--accent);color:#fff;}
+  .tool small{display:block;color:var(--dim);font-size:7px;}
 
-  /* build toolbar */
-  #toolbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;pointer-events:auto;}
-  .toolgroup{background:var(--panel);border:3px solid #000;padding:7px;box-shadow:4px 4px 0 rgba(0,0,0,.6);}
-  .toolgroup .tlabel{font-size:7px;color:var(--dim);margin-bottom:5px;letter-spacing:1px;}
-  .shapes{display:flex;gap:4px;}
-  .shapeBtn{width:34px;height:34px;background:#0c0c14;border:2px solid #000;color:#cfd6e6;font-size:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;line-height:1.3;}
-  .shapeBtn .n{color:#6a7290;font-size:7px;}
-  .shapeBtn.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;color:#fff;}
-  .swatches{display:flex;gap:4px;flex-wrap:wrap;width:150px;}
-  .sw{width:22px;height:22px;border:2px solid #000;cursor:pointer;}
-  .sw.sel{outline:3px solid #fff;outline-offset:1px;}
-  #sizeReadout{font-size:8px;color:var(--ink);margin-top:3px;text-align:center;}
+  /* contextual hint (one short line) */
+  #hint{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);font-size:8px;color:var(--dim);background:rgba(10,12,20,.7);padding:4px 10px;border:2px solid #000;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;}
 
-  /* speech bubble */
-  #speech{position:absolute;left:50%;top:16%;transform:translateX(-50%);max-width:70vw;display:none;}
-  #speechBubble{background:#fff;color:#111;border:3px solid #000;padding:12px 16px;font-size:13px;line-height:1.5;box-shadow:6px 6px 0 rgba(0,0,0,.5);text-align:center;position:relative;}
-  #speechBubble:after{content:"";position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#000;}
-  #speechWho{font-size:8px;color:#b23;margin-bottom:6px;letter-spacing:1px;}
-  #speechText .g{color:#7a1fa0;}
-
-  /* tutorial tooltip */
-  #tip{position:absolute;display:none;max-width:320px;z-index:40;pointer-events:auto;}
-  #tipBody{background:var(--warn);color:#201a00;border:3px solid #000;padding:11px 13px;font-size:10px;line-height:1.6;box-shadow:5px 5px 0 rgba(0,0,0,.5);}
-  #tipBtn{margin-top:9px;display:inline-block;background:#201a00;color:var(--warn);border:2px solid #000;padding:6px 10px;font-size:9px;cursor:pointer;}
-  #tipWait{margin-top:8px;font-size:8px;color:#5a4a00;}
-
-  /* peeking label + tint */
-  #peekLabel{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:none;background:var(--danger);color:#fff;border:3px solid #000;padding:6px 12px;font-size:11px;letter-spacing:2px;box-shadow:3px 3px 0 rgba(0,0,0,.5);animation:peekpulse 1s steps(2) infinite;z-index:30;}
-  @keyframes peekpulse{50%{background:#8a1a12;}}
-  #screenTint{position:absolute;inset:0;pointer-events:none;background:rgba(228,71,59,0);transition:background .25s;}
-
-  /* teacher vignette (edge-directional) */
-  #vignette{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;}
+  /* peek inset — clear view of neighbour's paper */
+  #peek{position:absolute;left:14px;top:64px;width:200px;display:none;pointer-events:none;z-index:20;}
+  #peekFrame{background:#fff;border:3px solid #000;box-shadow:4px 4px 0 rgba(0,0,0,.5);padding:5px;}
+  #peekCanvas{width:190px;height:190px;display:block;image-rendering:pixelated;background:#d4dae4;border:1px solid #bbb;}
+  #peekName{font-size:9px;color:#111;text-align:center;margin-top:4px;}
+  #peekTag{font-size:7px;color:#b23;text-align:center;}
+  #peekLabel{position:absolute;left:50%;top:60px;transform:translateX(-50%);display:none;background:var(--danger);color:#fff;border:3px solid #000;padding:5px 12px;font-size:11px;letter-spacing:2px;z-index:22;animation:pk 1s steps(2) infinite;}
+  @keyframes pk{50%{background:#8a1a12;}}
+  #tint{position:absolute;inset:0;pointer-events:none;background:rgba(232,80,63,0);transition:background .2s;}
+  #vignette{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .15s;}
   #vignette.on{opacity:1;}
+  #gazewarn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;color:#fff;background:rgba(232,80,63,.9);border:3px solid #000;padding:8px 14px;font-size:12px;z-index:21;}
 
-  /* bang cue rendered in-world via sprite; fallback DOM "!" markers */
-  .bang{position:absolute;transform:translate(-50%,-100%);font-size:20px;color:var(--danger);text-shadow:2px 2px 0 #000;pointer-events:none;z-index:25;animation:bangpop .3s ease-out;}
-  @keyframes bangpop{0%{transform:translate(-50%,-80%) scale(.3);}100%{transform:translate(-50%,-100%) scale(1);}}
+  .bang{position:absolute;transform:translate(-50%,-100%);font-size:22px;color:var(--danger);text-shadow:2px 2px 0 #000;pointer-events:none;z-index:24;animation:bp .25s ease-out;}
+  @keyframes bp{0%{transform:translate(-50%,-80%) scale(.4);}100%{transform:translate(-50%,-100%) scale(1);}}
 
   /* full-screen panels */
-  .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%, #1a2236, #060608 75%);pointer-events:auto;padding:24px;text-align:center;overflow:auto;}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 28%,#1a2236,#06070b 72%);pointer-events:auto;padding:22px;text-align:center;overflow:auto;}
   .screen.show{display:flex;}
-  .screen h1{font-size:30px;color:var(--accent);text-shadow:4px 4px 0 #000;margin:0 0 6px;letter-spacing:1px;}
-  .screen h2{font-size:16px;color:var(--warn);text-shadow:3px 3px 0 #000;margin:0 0 14px;}
-  .screen p{font-size:11px;line-height:1.8;color:var(--dim);max-width:560px;margin:8px auto;}
-  .btn{pointer-events:auto;font-family:var(--pix);font-size:12px;background:var(--accent);color:#06240f;border:3px solid #000;padding:12px 18px;margin:8px;cursor:pointer;box-shadow:4px 4px 0 #000;}
+  .screen h1{font-size:30px;color:var(--accent);text-shadow:4px 4px 0 #000;margin:0 0 8px;letter-spacing:1px;}
+  .screen h2{font-size:15px;color:var(--warn);text-shadow:3px 3px 0 #000;margin:0 0 12px;}
+  .screen p{font-size:11px;line-height:1.9;color:var(--dim);max-width:520px;margin:6px auto;}
+  .btn{pointer-events:auto;font-family:var(--pix);font-size:12px;background:var(--accent);color:#06240f;border:3px solid #000;padding:12px 18px;margin:7px;cursor:pointer;box-shadow:4px 4px 0 #000;}
   .btn:hover{transform:translate(1px,1px);box-shadow:3px 3px 0 #000;}
-  .btn.alt{background:var(--panel2);color:var(--ink);}
-  .btn.sm{font-size:9px;padding:8px 12px;}
+  .btn.alt{background:var(--panel2);color:var(--ink);} .btn.sm{font-size:9px;padding:8px 12px;}
   .row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
 
-  /* intro comic */
-  #introPanels{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:860px;margin:10px auto;}
-  .comic{width:190px;height:150px;border:3px solid #000;background:#0c0c14;position:relative;overflow:hidden;box-shadow:4px 4px 0 #000;opacity:.25;transition:opacity .4s;}
+  #introPanels{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:820px;margin:8px auto;}
+  .comic{width:180px;height:140px;border:3px solid #000;background:#0c0c14;position:relative;overflow:hidden;box-shadow:4px 4px 0 #000;opacity:.25;transition:opacity .4s;}
   .comic.active{opacity:1;outline:3px solid var(--accent);}
   .comic canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;}
-  .comic .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);color:#fff;font-size:8px;line-height:1.4;padding:6px;}
+  .comic .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);font-size:8px;line-height:1.4;padding:6px;}
 
   /* period card */
-  #periodCard{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,8,14,.92);pointer-events:auto;text-align:center;z-index:60;}
-  #periodCard.show{display:flex;}
-  #pcClock{font-size:12px;color:var(--warn);margin-bottom:6px;}
-  #pcName{font-size:30px;color:var(--accent);text-shadow:4px 4px 0 #000;margin:4px 0;}
-  #pcNew{font-size:11px;color:#fff;background:var(--danger);border:3px solid #000;padding:8px 12px;margin-top:14px;display:none;max-width:500px;line-height:1.6;box-shadow:4px 4px 0 #000;}
-  #pcHint{font-size:9px;color:var(--dim);margin-top:20px;}
+  #card{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,8,14,.92);pointer-events:auto;z-index:50;text-align:center;}
+  #card.show{display:flex;}
+  #cardClock{font-size:12px;color:var(--warn);margin-bottom:6px;}
+  #cardName{font-size:30px;color:var(--accent);text-shadow:4px 4px 0 #000;}
+  #cardNew{font-size:10px;color:#fff;background:var(--danger);border:3px solid #000;padding:8px 12px;margin-top:14px;display:none;max-width:460px;line-height:1.6;}
+  #cardHint{font-size:9px;color:var(--dim);margin-top:18px;}
 
-  /* notes card */
-  #notes{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,14,.9);pointer-events:auto;z-index:60;padding:20px;}
+  /* show & tell gallery */
+  #gallery{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,8,14,.95);pointer-events:auto;z-index:55;padding:14px;}
+  #gallery.show{display:flex;}
+  #galReveal{font-size:20px;color:var(--warn);text-shadow:3px 3px 0 #000;margin-bottom:4px;min-height:26px;text-align:center;}
+  #galSub{font-size:9px;color:var(--dim);margin-bottom:14px;}
+  #galRow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:flex-end;}
+  .galCell{width:150px;transition:transform .2s;}
+  .galCell.active{transform:translateY(-10px) scale(1.06);}
+  .galFrame{background:#fff;border:4px solid #000;padding:5px;position:relative;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
+  .galCanvas{width:100%;height:132px;display:block;image-rendering:pixelated;background:#d4dae4;}
+  .galSticker{position:absolute;top:-16px;right:-14px;width:40px;height:40px;background:#fff;border:3px solid #000;display:none;align-items:center;justify-content:center;font-size:22px;transform:rotate(-8deg);box-shadow:2px 2px 0 #000;}
+  .galName{font-size:11px;text-align:center;margin-top:7px;}
+  .galName.you{color:var(--accent);}
+  .galCell.active .galName{color:var(--warn);}
+  #galGo{margin-top:16px;display:none;}
+
+  /* notes */
+  #notes{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,14,.9);pointer-events:auto;z-index:56;padding:18px;}
   #notes.show{display:flex;}
-  #notesCard{background:#f3efe2;color:#1a1a1a;border:4px solid #000;max-width:460px;width:100%;box-shadow:8px 8px 0 rgba(0,0,0,.6);}
-  #notesHead{background:#2f7a3a;color:#fff;padding:10px 14px;font-size:12px;display:flex;justify-content:space-between;align-items:center;}
+  #notesCard{background:#f3efe2;color:#1a1a1a;border:4px solid #000;max-width:440px;width:100%;box-shadow:8px 8px 0 rgba(0,0,0,.6);}
+  #notesHead{background:#2f7a3a;color:#fff;padding:9px 13px;font-size:12px;}
   #notesBody{padding:16px;}
-  #notesGrade{font-size:40px;float:right;margin:0 0 8px 12px;border:3px solid #000;width:66px;height:66px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:3px 3px 0 #000;transform:rotate(-6deg);}
+  #notesGrade{font-size:40px;float:right;margin:0 0 8px 12px;border:3px solid #000;width:64px;height:64px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:3px 3px 0 #000;transform:rotate(-6deg);}
   #notesReasons{list-style:none;padding:0;margin:0 0 12px;font-size:10px;line-height:1.9;}
   #notesReasons .ok{color:#1d7a2e;} #notesReasons .no{color:#b02418;}
-  #notesSusp{font-size:10px;border-top:2px dashed #999;padding-top:10px;margin-top:4px;}
+  #notesSusp{font-size:10px;border-top:2px dashed #999;padding-top:10px;}
   #notesBtn{display:block;margin:14px auto 0;}
 
-  /* pause */
-  #pause{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,12,.93);pointer-events:auto;z-index:70;padding:20px;}
+  /* pause / simple how-to */
+  #pause{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,6,12,.94);pointer-events:auto;z-index:70;padding:20px;}
   #pause.show{display:flex;}
-  #pauseCard{max-width:560px;}
+  #pauseCard{max-width:460px;text-align:center;}
   #pauseCard h2{font-size:18px;color:var(--accent);text-shadow:3px 3px 0 #000;}
-  .howrow{display:flex;align-items:center;gap:12px;font-size:10px;color:var(--ink);background:var(--panel);border:2px solid #000;padding:9px 12px;margin:6px 0;text-align:left;line-height:1.5;}
-  .howrow .ic{font-size:20px;width:30px;text-align:center;}
+  .how{font-size:10px;color:var(--ink);background:var(--panel);border:2px solid #000;padding:9px 12px;margin:6px 0;text-align:left;line-height:1.6;}
+  .how b{color:var(--warn);}
+  .key{display:inline-block;background:#0b0d16;border:1px solid #555;padding:1px 5px;color:#fff;border-radius:2px;}
 
-  /* debug */
-  #debug{position:absolute;left:10px;top:10px;display:none;max-width:420px;max-height:80vh;overflow:auto;background:rgba(0,0,0,.82);border:2px solid #0f0;color:#9f9;font-size:8px;line-height:1.5;padding:8px;white-space:pre-wrap;z-index:80;pointer-events:none;}
+  #debug{position:absolute;left:10px;top:92px;display:none;max-width:400px;max-height:72vh;overflow:auto;background:rgba(0,0,0,.82);border:2px solid #0f0;color:#9f9;font-size:8px;line-height:1.5;padding:8px;white-space:pre-wrap;z-index:80;pointer-events:none;}
   #debug.show{display:block;}
-
-  /* report card (win) */
-  #report{margin:14px auto;max-width:520px;width:100%;text-align:left;background:var(--panel);border:3px solid #000;padding:14px;}
+  #report{margin:12px auto;max-width:520px;width:100%;background:var(--panel);border:3px solid #000;padding:14px;text-align:left;}
   #report table{width:100%;border-collapse:collapse;font-size:10px;}
   #report td{padding:5px 4px;border-bottom:1px solid #333;}
   #report .g{text-align:right;color:var(--warn);}
-
-  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#060608;color:var(--accent);font-size:12px;z-index:90;text-align:center;}
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#06070b;color:var(--accent);font-size:12px;z-index:90;text-align:center;}
   .tiny{font-size:8px;color:#667;}
-  @media (max-width:720px){
-    #translator{max-width:70vw;}
-    #toolbar{transform:translateX(-50%) scale(.82);transform-origin:bottom center;}
-    .screen h1{font-size:22px;}
-  }
+  @media (max-width:720px){ .screen h1{font-size:22px;} #trDesc{font-size:11px;} #crayons .cr{width:28px;height:22px;} }
 </style>
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-  }
-}
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
 </head>
 <body>
 <div id="app">
   <canvas id="scene"></canvas>
-
-  <!-- in-game HUD overlay -->
   <div id="ui">
     <div id="vignette"></div>
-    <div id="screenTint"></div>
+    <div id="tint"></div>
 
-    <div id="goalStrip">
-      <span id="gsPeriod">Period: Homeroom</span>
-      <span class="sep">·</span>
-      <span id="gsTask">Build what the humans said</span>
-      <span class="sep">·</span>
-      <span class="timer" id="gsTimer">—</span>
-      <span class="sep">·</span>
-      <span class="pieces" id="gsPieces">Pieces 0/12</span>
-    </div>
-
-    <div id="suspWrap">
-      <div id="suspBox">
-        <div id="suspHead"><span id="antenna">📡</span><span id="suspLabel">SUSPICION</span></div>
-        <div id="suspBarOuter"><div id="suspBarFill"></div><span id="suspNum">0</span></div>
-        <div id="suspTip">Raises from: bad grades (F +30, D +15, C +5), getting caught peeking (+10), the teacher spotting you (+20), sabotage seen (+35), copying a neighbour too closely (+20). Good grades lower it (A −10). At 100 you're caught.</div>
-      </div>
+    <div id="goal"><span id="goalName">HOMEROOM</span><span style="color:#555">·</span><span id="goalTimer">--</span></div>
+    <div id="susp">
+      <div id="suspTop"><span>SUSPICION</span><span id="suspVal2">0</span></div>
+      <div id="suspBarO"><div id="suspBar"></div><span id="suspVal">0</span></div>
+      <div id="suspTip">Up: bad grade, caught peeking (+10), teacher spots you (+20), scribbling seen (+35), copying a neighbour (+20). Down: good grade. 100 = caught.</div>
     </div>
     <div id="popups"></div>
 
-    <div id="peekLabel">👀 PEEKING</div>
+    <div id="peekLabel">PEEKING</div>
+    <div id="peek"><div id="peekFrame"><canvas id="peekCanvas" width="160" height="160"></canvas><div id="peekName">Timmy</div><div id="peekTag"></div></div></div>
+    <div id="gazewarn">SHE'S LOOKING</div>
 
-    <div id="speech"><div id="speechBubble"><div id="speechWho">MS. HUXLEY</div><div id="speechText"></div></div></div>
+    <div id="crayons"></div>
+    <div id="tools"></div>
+    <div id="hint"></div>
 
-    <div id="translator" title="Click to replay translation">
-      <div id="transBody">
-        <div id="transTop"><span>▞ ALIEN TRANSLATOR v0.3 ▞</span><span id="transBeep">◍</span></div>
-        <div id="transScreen">
-          <div class="transLine"><span class="transLabel">HUMANS SAID:</span> <span id="humansWord" class="flick">▓▓▓▓▓</span></div>
-          <div class="transLine" style="margin-top:7px;"><span class="transLabel">TRANSLATOR SAYS:</span></div>
-          <div class="transLine" id="transEntry" style="min-height:40px;"><span id="transCaret">&nbsp;</span></div>
+    <div id="translator" class="pe" title="click to replay">
+      <div id="trBody">
+        <div id="trHead"><span>ALIEN TRANSLATOR v0.4</span><span id="trBeep">o</span></div>
+        <div id="trScreen">
+          <div class="trRow"><span class="trLbl">THEY SAID:</span> <span id="trWord" class="flick">#####</span></div>
+          <div class="trRow"><span class="trLbl">IT MEANS:</span></div>
+          <div class="trRow"><span id="trDesc"><span id="trCaret">&nbsp;</span></span></div>
         </div>
-        <div id="transHint">▲ click to replay ▲</div>
+        <div id="trHint">click to replay</div>
       </div>
     </div>
+  </div>
 
-    <div id="toolbar">
-      <div class="toolgroup">
-        <div class="tlabel">SHAPE (1-5)</div>
-        <div class="shapes" id="shapes"></div>
-        <div id="sizeReadout">Size: MED &nbsp; [ ] or scroll</div>
-      </div>
-      <div class="toolgroup">
-        <div class="tlabel">COLOUR</div>
-        <div class="swatches" id="swatches"></div>
-      </div>
+  <div id="tip" style="position:absolute;display:none;max-width:320px;z-index:40;pointer-events:auto;">
+    <div style="background:var(--warn);color:#201a00;border:3px solid #000;padding:11px 13px;font-size:10px;line-height:1.7;box-shadow:5px 5px 0 rgba(0,0,0,.5);">
+      <div id="tipText"></div><span id="tipBtn" style="margin-top:9px;display:inline-block;background:#201a00;color:var(--warn);border:2px solid #000;padding:6px 10px;cursor:pointer;">Got it</span>
+      <div id="tipWait" style="margin-top:8px;font-size:8px;color:#5a4a00;"></div>
     </div>
-
-    <div id="controlHints"></div>
   </div>
 
-  <!-- tutorial tooltip -->
-  <div id="tip"><div id="tipBody"><div id="tipText"></div><span id="tipBtn">Got it →</span><div id="tipWait"></div></div></div>
-
-  <!-- period title card -->
-  <div id="periodCard">
-    <div id="pcClock">🕘 9:00</div>
-    <div id="pcName">HOMEROOM</div>
-    <div id="pcNew"></div>
-    <div id="pcHint">click to begin</div>
+  <div id="card">
+    <div id="cardClock">9:00</div><div id="cardName">HOMEROOM</div>
+    <div id="cardNew"></div><div id="cardHint">click to begin</div>
   </div>
 
-  <!-- teacher's notes -->
+  <div id="gallery">
+    <div id="galReveal"></div><div id="galSub">the teacher is grading...</div>
+    <div id="galRow"></div>
+    <button class="btn sm" id="galGo">See my notes</button>
+  </div>
+
   <div id="notes"><div id="notesCard">
-    <div id="notesHead"><span>TEACHER'S NOTES</span><span id="notesFor">— your build</span></div>
-    <div id="notesBody">
-      <div id="notesGrade">?</div>
-      <ul id="notesReasons"></ul>
-      <div id="notesSusp"></div>
-      <button class="btn sm" id="notesBtn">Next →</button>
-    </div>
+    <div id="notesHead">TEACHER'S NOTES — your drawing</div>
+    <div id="notesBody"><div id="notesGrade">?</div><ul id="notesReasons"></ul><div id="notesSusp"></div><button class="btn sm" id="notesBtn">Next</button></div>
   </div></div>
 
-  <!-- pause / how to play -->
-  <div id="pause"><div id="pauseCard" class="screen" style="position:relative;display:flex;background:none;">
+  <div id="pause"><div id="pauseCard">
     <h2>HOW TO PLAY</h2>
-    <div class="howrow"><span class="ic">🛸</span><span>You're an alien disguised as the new kid. Build what the teacher asks — but you can't read English, only your translator's description.</span></div>
-    <div class="howrow"><span class="ic">🧱</span><span>Pick a <b>shape</b> (<span class="key">1</span>-<span class="key">5</span>) and a <b>colour</b>, then <b>click your desk</b> to place it. <span class="key">[</span> <span class="key">]</span> size · <span class="key">R</span> rotate · <span class="key">F</span> flip · <span class="key">Z</span> undo.</span></div>
-    <div class="howrow"><span class="ic">👀</span><span>Hold <span class="key">A</span>/<span class="key">D</span> to peek at a neighbour. If their head turns toward you while peeking — or Ms. Huxley sees you — suspicion rises.</span></div>
-    <div class="howrow"><span class="ic">😈</span><span>From Art on, press <span class="key">E</span> while peeking to sabotage a neighbour. Risky if seen.</span></div>
-    <div class="howrow"><span class="ic">📡</span><span>Bad grades, getting caught and copying too closely raise SUSPICION. At 100, you're done.</span></div>
-    <div class="row"><button class="btn" id="resumeBtn">Resume</button><button class="btn alt sm" id="quitBtn">Quit to title</button></div>
+    <div class="how">Pick a <b>crayon</b> and <b>draw</b> what the translator describes. You can't read the word — only its description.</div>
+    <div class="how">Hold <span class="key">A</span>/<span class="key">D</span> to <b>peek</b> at a neighbour. Stop before their head turns, or you're caught.</div>
+    <div class="how">Watch <b>Ms. Huxley</b>'s vision cone. If it turns red over you while peeking — trouble.</div>
+    <div class="how">From Art on, hold <span class="key">E</span> while peeking to <b>scribble</b> on their work. Risky if seen.</div>
+    <div class="row"><button class="btn" id="resumeBtn">Resume</button><button class="btn alt sm" id="quitBtn">Quit</button></div>
   </div></div>
 
-  <!-- title -->
   <div id="title" class="screen">
     <h1>FIRST DAY ON EARTH</h1>
     <p>You're an alien. It's your first day of school. Don't get caught.</p>
-    <div class="row">
-      <button class="btn" id="startBtn">Start</button>
-      <button class="btn alt" id="howBtn">How to Play</button>
-    </div>
+    <div class="row"><button class="btn" id="startBtn">Start</button><button class="btn alt" id="howBtn">How to Play</button></div>
     <div class="row"><button class="btn alt sm" id="skipTutBtn" style="display:none;">Skip Tutorial</button></div>
-    <p class="tiny">Low-poly · dithered · no reading required</p>
+    <p class="tiny">draw, don't read &middot; low-poly &middot; no two days the same</p>
   </div>
 
-  <!-- intro -->
   <div id="intro" class="screen">
-    <h2>MEANWHILE, BEHIND THE SCHOOL…</h2>
+    <h2>MEANWHILE, BEHIND THE SCHOOL...</h2>
     <div id="introPanels"></div>
-    <div class="row"><button class="btn" id="introSkip">Skip intro →</button></div>
+    <div class="row"><button class="btn" id="introSkip">Skip</button></div>
   </div>
 
-  <!-- win -->
   <div id="win" class="screen">
     <h1>EARTH, ACCORDING TO YOU</h1>
     <p id="winSub">You survived the whole day without blowing your cover.</p>
     <div id="report"></div>
     <div class="row"><button class="btn" id="winRestart">Play again</button></div>
   </div>
-
-  <!-- lose -->
   <div id="lose" class="screen">
     <h1 style="color:var(--danger);">CAUGHT.</h1>
-    <h2 id="loseWhy">We need to talk about your… antennae.</h2>
+    <h2 id="loseWhy">We need to talk about your... antennae.</h2>
     <p id="loseReasons"></p>
     <div class="row"><button class="btn" id="loseRestart">Try again</button></div>
   </div>
 
   <div id="debug"></div>
-  <div id="loading">Landing the UFO…<br><span class="tiny" id="loadErr"></span></div>
+  <div id="loading">Landing the UFO...<br><span class="tiny" id="loadErr"></span></div>
 </div>
 
 <script type="module">
 import * as THREE from 'three';
 /* ============================================================================
-   FIRST DAY ON EARTH — single-file browser game
-   Sections:
-     1. CONFIG / DATA     (colours, words, recipes, translator entries, lines, periods)
-     2. RENDERING + DITHER
-     3. CLASSROOM SCENE
-     4. BUILD SYSTEM
-     5. KID AI
-     6. TEACHER AI
-     7. GRADING  (gradeBuild / similarity — isolated, swappable)
-     8. SUSPICION
-     9. ONBOARDING / TUTORIAL
-    10. UI
-    11. GAME STATE  (period flow, show & tell)
-    12. DEBUG + renderCleanSnapshot
-    13. BOOT
+   FIRST DAY ON EARTH  (drawing edition)
+   1 config/data  2 render+dither  3 scene  4 draw system  5 kid AI
+   6 teacher AI  7 grading (isolated)  8 suspicion  9 onboarding
+   10 UI  11 game state / show&tell  12 debug+snapshot  13 boot
    ========================================================================= */
 
 /* =========================== 1. CONFIG / DATA =========================== */
-
-// 8 build colours — chosen to stay distinguishable through the dither palette.
-const COLORS = {
-  red:    0xd83a3a,
-  orange: 0xe8872b,
-  yellow: 0xf4d24a,
-  green:  0x4fae54,
-  blue:   0x3f7ad6,
-  purple: 0x9b55c7,
-  brown:  0x9a6a41,
-  white:  0xececec,
-};
+const COLORS = { red:0xe23b3b, orange:0xef8a2b, yellow:0xf5d13e, green:0x46b24e,
+                 blue:0x3f7ad6, purple:0x9b55c7, brown:0x8a5a34, white:0xffffff };
 const COLOR_KEYS = Object.keys(COLORS);
-const COLOR_ADJ = { red:'red', orange:'orange', yellow:'yellow', green:'green', blue:'blue', purple:'purple', brown:'brown', white:'white' };
-const SHAPE_NOUN = { cube:'block', sphere:'ball', cylinder:'post', cone:'cone', wedge:'wedge' };
-const BAND_PHRASE = { base:'at the bottom', middle:'in the middle', top:'on top' };
-const SHAPES = ['cube','sphere','cylinder','cone','wedge'];
+const hex = h => '#'+h.toString(16).padStart(6,'0');
+const COLOR_CSS = {}; for(const k of COLOR_KEYS) COLOR_CSS[k]=hex(COLORS[k]);
+const COLOR_RGB = {}; for(const k of COLOR_KEYS) COLOR_RGB[k]=[(COLORS[k]>>16)&255,(COLORS[k]>>8)&255,COLORS[k]&255];
+const COLOR_NAME = { red:'red',orange:'orange',yellow:'yellow',green:'green',blue:'blue',purple:'purple',brown:'brown',white:'white' };
+const PAPER = '#d4dae4';            // paper background colour (slightly grey so white crayon reads as ink)
+const PAPER_RGB = [212,218,228];
+const BANDWORD = { T:'on top', M:'in the middle', B:'at the bottom' };
 
-// 16-colour dither palette (0..1 rgb). Includes the 8 build hues + environment tones.
-const PALETTE_HEX = [
-  0x12121c, 0x40405a, 0x8a8a9a, 0xc8cdd6, // neutrals
-  0x2f7a3a, 0x274f8a, 0xc9a46a, 0x6e4328, // env (dark green / dark blue / tan wood / dark brown)
-  COLORS.red, COLORS.orange, COLORS.yellow, COLORS.green,
-  COLORS.blue, COLORS.purple, COLORS.brown, COLORS.white,
-];
-
-// recipe part: { shapes[], colors[], size:'small'|'medium'|'large', band:'base'|'middle'|'top', count:[min,max], orientation? }
-// A word has 1..3 variants (lists of parts). optional part = count min 0.
-const ANY = COLOR_KEYS;
+// Each word: e = 2-3 alien descriptions (the only clue); r = recipe parts.
+// A part: [band 'T'|'M'|'B', [allowed colours], need(min fraction of band inked with that colour)].
+// Strict grader: colour must appear in the right band with enough coverage.
 const WORDS = {
-  mushroom: {
-    periodHint:'tutorial',
-    entries:[
-      "Small white stalk with a round red cap. Grows in the dark. Some make you see colours.",
-      "Tiny umbrella made of food. White stem, red dome on top.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['white','brown'],size:'medium',band:'base',count:[1,1]},
-        {shapes:['sphere','cone'],colors:['red'],size:'medium',band:'top',count:[1,1]} ],
-    ],
-    ratio:[0.6,2.4],
-  },
-  tree: {
-    entries:[
-      "Tall wooden stick. Grows green hair on top. Dogs mark it.",
-      "A brown pole wearing a leafy hat. Stays in one spot forever.",
-      "Giant vegetable that eats sunlight and never moves.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['brown'],size:'medium',band:'base',count:[1,1],orientation:'upright'},
-        {shapes:['sphere'],colors:['green'],size:'medium',band:'top',count:[1,3]} ],
-      [ {shapes:['cylinder'],colors:['brown'],size:'small',band:'base',count:[1,1]},
-        {shapes:['cone'],colors:['green'],size:'medium',band:'top',count:[1,3],orientation:'upright'} ],
-    ],
-    ratio:[0.8,3.2],
-  },
-  house: {
-    entries:[
-      "A box humans sleep inside. Has a pointy hat to shed sky-water.",
-      "Square cave with a triangle lid. They hide in it at night.",
-      "Storage container for one family. Pointed top.",
-    ],
-    variants:[
-      [ {shapes:['cube'],colors:['red','white','brown','yellow','blue'],size:'large',band:'base',count:[1,1]},
-        {shapes:['wedge','cone'],colors:['red','brown','orange'],size:'medium',band:'top',count:[1,1]} ],
-    ],
-    ratio:[0.6,1.8],
-  },
-  snowman: {
-    entries:[
-      "Three cold balls stacked, biggest at the bottom. Orange nose. Melts if it gets happy.",
-      "A stack of frozen spheres with a pointy face-spike. Temporary friend.",
-      "White round creature built in winter. Carrot for a face.",
-    ],
-    variants:[
-      [ {shapes:['sphere'],colors:['white'],size:'large',band:'base',count:[1,1]},
-        {shapes:['sphere'],colors:['white'],size:'medium',band:'middle',count:[1,1]},
-        {shapes:['sphere'],colors:['white'],size:'small',band:'top',count:[1,1]},
-        {shapes:['cone'],colors:['orange'],size:'small',band:'top',count:[0,1],orientation:'upright'} ],
-    ],
-    ratio:[0.7,2.2],
-  },
-  cactus: {
-    entries:[
-      "Tall green stick covered in tiny spears. Lives where water hides. Do not hug.",
-      "A thirsty green pole with arms. Pokes you.",
-      "Angry green plant from the hot sandy place.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['green'],size:'large',band:'base',count:[1,1],orientation:'upright'},
-        {shapes:['cylinder','sphere'],colors:['green'],size:'small',band:'middle',count:[0,2]} ],
-    ],
-    ratio:[1.0,3.0],
-  },
-  'ice cream cone': {
-    entries:[
-      "Cold sweet balls balanced on a pointy brown holder. Melts, then makes humans sad.",
-      "A crunchy triangle cup holding frozen happiness.",
-      "Upside-down brown cone topped with cold round scoops.",
-    ],
-    variants:[
-      [ {shapes:['cone'],colors:['yellow','brown','orange'],size:'medium',band:'base',count:[1,1],orientation:'inverted'},
-        {shapes:['sphere'],colors:['white','red','brown','yellow'],size:'medium',band:'top',count:[1,2]} ],
-    ],
-    ratio:[0.8,2.6],
-  },
-  hamburger: {
-    entries:[
-      "Round brown bread hiding a flat disc of meat and green leaves. Humans eat it with hands.",
-      "A stack of food between two round buns. Bottom bun, filling, top bun.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['brown','yellow','orange'],size:'medium',band:'base',count:[1,1]},
-        {shapes:['cylinder','cube'],colors:['green','red','brown'],size:'medium',band:'middle',count:[1,2]},
-        {shapes:['cylinder','sphere'],colors:['brown','yellow','orange'],size:'medium',band:'top',count:[1,1]} ],
-    ],
-    ratio:[0.4,1.4],
-  },
-  'birthday cake': {
-    entries:[
-      "A round sweet tower with tiny fire-sticks on top. They sing at it, then eat it.",
-      "Stacked round dessert decorated with little candles that must be blown out.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['white','brown','red','purple'],size:'large',band:'base',count:[1,1]},
-        {shapes:['cylinder'],colors:['white','red','purple'],size:'medium',band:'middle',count:[0,1]},
-        {shapes:['cylinder','cone'],colors:['yellow','red','blue','green'],size:'small',band:'top',count:[1,4],orientation:'upright'} ],
-    ],
-    ratio:[0.5,1.8],
-  },
-  umbrella: {
-    entries:[
-      "A stick holding a dome overhead. Keeps sky-water off the human.",
-      "A portable roof on a pole. Opens when the sky cries.",
-      "Big colourful cap on a handle. Blocks rain.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['brown','white'],size:'large',band:'base',count:[1,1],orientation:'upright'},
-        {shapes:['cone','sphere'],colors:['red','blue','purple','green'],size:'large',band:'top',count:[1,1]} ],
-    ],
-    ratio:[0.7,2.6],
-  },
-  lamp: {
-    entries:[
-      "A pole topped with a glowing hat. Makes the dark go away in the home.",
-      "A stand holding captured light. Flick it to see at night.",
-      "Tame indoor sun on a stick.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['brown','white'],size:'medium',band:'base',count:[1,1]},
-        {shapes:['cone','cylinder'],colors:['yellow','white'],size:'medium',band:'top',count:[1,1],orientation:'inverted'} ],
-    ],
-    ratio:[0.8,2.6],
-  },
-  lighthouse: {
-    entries:[
-      "Tall striped tower by the water with a bright eye on top. Warns the boats.",
-      "A thin building that blinks light so ships don't crash.",
-      "Red-and-white pole with a glowing crown near the sea.",
-    ],
-    variants:[
-      [ {shapes:['cylinder','cone'],colors:['white','red'],size:'large',band:'base',count:[1,2]},
-        {shapes:['cube','cylinder'],colors:['yellow','white'],size:'small',band:'top',count:[1,1]},
-        {shapes:['cone'],colors:['red'],size:'small',band:'top',count:[0,1],orientation:'upright'} ],
-    ],
-    ratio:[1.2,3.5],
-  },
-  'traffic light': {
-    entries:[
-      "A pole with three glowing eyes: red, yellow, green. Tells the metal boxes when to move.",
-      "Three stacked coloured circles that boss the cars around.",
-      "A commanding pole. Red stop, green go.",
-    ],
-    variants:[
-      [ {shapes:['cube','cylinder'],colors:['brown','white'],size:'large',band:'base',count:[1,1],orientation:'upright'},
-        {shapes:['sphere'],colors:['red'],size:'small',band:'top',count:[1,1]},
-        {shapes:['sphere'],colors:['yellow'],size:'small',band:'middle',count:[1,1]},
-        {shapes:['sphere'],colors:['green'],size:'small',band:'middle',count:[1,1]} ],
-    ],
-    ratio:[1.0,3.0],
-  },
-  rocket: {
-    entries:[
-      "A tall pointy tube that spits fire and escapes the planet. We came in one.",
-      "A metal cylinder with a cone hat and little fins. Goes up, way up.",
-      "Pointed flying machine. Tube body, cone tip, fire below.",
-    ],
-    variants:[
-      [ {shapes:['cylinder'],colors:['white','red'],size:'large',band:'middle',count:[1,1],orientation:'upright'},
-        {shapes:['cone'],colors:['red','white','orange'],size:'medium',band:'top',count:[1,1],orientation:'upright'},
-        {shapes:['wedge','cone'],colors:['red','blue','orange'],size:'small',band:'base',count:[0,3]} ],
-    ],
-    ratio:[1.1,3.4],
-  },
-  car: {
-    entries:[
-      "A metal box on round feet. Humans sit inside and roll around loudly.",
-      "A boxy shell with round spinners underneath. Moves families fast.",
-      "Four wheels under a colourful box. Honks.",
-    ],
-    variants:[
-      [ {shapes:['cube'],colors:['red','blue','yellow','green','white'],size:'large',band:'base',count:[1,1]},
-        {shapes:['cube','wedge'],colors:['red','blue','white','yellow'],size:'medium',band:'top',count:[0,1]},
-        {shapes:['cylinder','sphere'],colors:['brown','white'],size:'small',band:'base',count:[2,4]} ],
-    ],
-    ratio:[0.25,1.0],
-  },
-  'your family': {
-    entries:[
-      "The humans who share your cave. Round heads on body-stacks. Yours are... borrowed.",
-      "A group of people-shapes who live together. Head-ball on a body.",
-      "Several small humans that belong to you now. Blend in.",
-    ],
-    variants:[
-      [ {shapes:['cylinder','cube'],colors:ANY,size:'medium',band:'base',count:[2,4]},
-        {shapes:['sphere'],colors:['white','brown','orange'],size:'small',band:'top',count:[2,4]} ],
-    ],
-    ratio:[0.6,2.0],
-  },
+  sun:        { tag:'easy', e:["A hot yellow circle that lives in the top of the sky. Do not stare.","The big ball of fire humans orbit. Draw it up high and yellow.","Round. Yellow. Burns. Stays near the top."], r:[['T',['yellow','orange'],0.1]] },
+  tree:       { tag:'easy', e:["Tall brown stick. Grows green hair on top. Dogs mark it.","A brown pole wearing a leafy green hat.","Giant plant: brown below, green fluff above."], r:[['B',['brown'],0.07],['T',['green'],0.1]] },
+  flower:     { tag:'easy', e:["A green stalk topped with bright colourful petals. Smells nice, they say.","Green stem, colourful bloom on top. Bees love it.","Pretty top, green bottom. Grows from dirt."], r:[['B',['green'],0.06],['T',['red','yellow','purple','orange'],0.08]] },
+  apple:      { tag:'easy', e:["A round red fruit with a tiny green leaf. Keeps doctors away.","Red ball of food. Little green bit on top.","Round, red, crunchy. Tiny green stem."], r:[['M',['red'],0.12],['T',['green'],0.03]] },
+  heart:      { tag:'easy', e:["A red love-lump humans draw when they like each other.","The red shape that means affection. Mushy.","Two bumps and a point. Always red."], r:[['M',['red'],0.14]] },
+  star:       { tag:'easy', e:["A yellow spiky light that hangs in the night sky.","Pointy yellow twinkle. We navigate by these.","Five points, yellow, very far away."], r:[['M',['yellow'],0.1]] },
+  cloud:      { tag:'easy', e:["A white fluffy blob that floats up high and cries water.","Soft white puff in the sky. Blocks the sun.","White, lumpy, drifts near the top."], r:[['T',['white'],0.12]] },
+  moon:       { tag:'easy', e:["A pale round rock that glows at night up high.","White-yellow circle. Comes out when the sun sleeps.","Round, pale, lives at the top of the dark sky."], r:[['T',['white','yellow'],0.1]] },
+  balloon:    { tag:'easy', e:["A colourful bubble on a string. Floats up at parties.","Round colourful top, thin brown string below.","A happy floating orb. Hold the string or it leaves."], r:[['T',['red','blue','purple','orange'],0.1],['B',['brown'],0.02]] },
+  banana:     { tag:'easy', e:["A long yellow curved food. Monkeys fight over it.","Yellow crescent. Peel before eating.","Bendy, yellow, mushy inside."], r:[['M',['yellow'],0.12]] },
+  fish:       { tag:'med', e:["A slippery swimmer with a tail. Lives in the wet.","Orange or blue body, pointy tail. Blows bubbles.","Swims. Has fins. Tastes salty to them."], r:[['M',['orange','blue'],0.12]] },
+  house:      { tag:'med', e:["A box humans sleep in. Pointy roof to shed sky-water.","Square cave with a triangle lid on top.","Walls below, pointed roof above. They hide in it."], r:[['M',['red','blue','brown','yellow'],0.1],['T',['red','brown','orange'],0.07]] },
+  cat:        { tag:'med', e:["A small furry beast with pointy ears. Judges you.","Orange or brown fuzzball. Ignores humans.","Whiskers, ears, tail. Secretly the boss."], r:[['M',['orange','brown'],0.12]] },
+  boat:       { tag:'med', e:["A floating brown bowl with a white sail. Rides the water.","Brown hull below, white triangle sail above.","Carries humans across the wet. Has a sail."], r:[['B',['brown','red'],0.08],['T',['white'],0.06]] },
+  umbrella:   { tag:'med', e:["A coloured dome on a brown stick. Blocks sky-water.","Colourful top, thin brown handle. Opens when it rains.","Portable roof on a pole."], r:[['T',['red','blue','purple','green'],0.1],['B',['brown'],0.03]] },
+  mushroom:   { tag:'med', e:["A white stalk with a round red cap. Grows in the dark.","White stem below, red dome on top. Some are rude.","Tiny umbrella of food."], r:[['B',['white'],0.06],['T',['red'],0.1]] },
+  pumpkin:    { tag:'med', e:["A fat orange gourd with a little green top. They carve faces in it.","Round and orange, green stem on top.","Big orange ball of autumn."], r:[['M',['orange'],0.14],['T',['green'],0.03]] },
+  cactus:     { tag:'med', e:["A green prickly pole from the hot sandy place. Do not hug.","Tall green plant covered in spears.","Thirsty, green, pokes you."], r:[['M',['green'],0.1],['B',['green'],0.06]] },
+  frog:       { tag:'med', e:["A green jumpy pond-thing. Catches flies with its tongue.","Green, slimy, hops. Says ribbit.","Bulgy eyes, green skin, loud at night."], r:[['M',['green'],0.14]] },
+  crown:      { tag:'med', e:["A gold spiky hat worn by the human in charge.","Yellow pointy headpiece. Means you're royal.","Sits on top. Gold. Very bossy."], r:[['T',['yellow'],0.1]] },
+  carrot:     { tag:'med', e:["A pointy orange root with green hair. Rabbits obsess over it.","Orange below, leafy green on top. Grows underground.","Long, orange, pointy. Good for eyes, they claim."], r:[['M',['orange'],0.1],['T',['green'],0.05]] },
+  strawberry: { tag:'med', e:["A red heart-shaped berry with a green leaf cap.","Red fruit, tiny green crown. Covered in seeds.","Sweet, red, green bit on top."], r:[['M',['red'],0.12],['T',['green'],0.04]] },
+  duck:       { tag:'med', e:["A yellow water-bird with an orange beak. Says quack.","Round yellow body, orange nose-thing.","Floats, waddles, demands bread."], r:[['M',['yellow'],0.12],['M',['orange'],0.02]] },
+  kite:       { tag:'med', e:["A coloured diamond on a string that dances in the wind up high.","Bright shape on top, long brown string below.","Flies when the air pushes. Hold tight."], r:[['T',['red','blue','yellow','purple'],0.09],['B',['brown'],0.02]] },
+  grapes:     { tag:'med', e:["A bunch of little purple balls with a green stem.","Purple cluster, green bit on top. Squishy.","Many small purple spheres together."], r:[['M',['purple'],0.12],['T',['green'],0.03]] },
+  ghost:      { tag:'med', e:["A floating white sheet-thing that says boo.","Pale white blob with no legs. Spooky.","White, wavy, scares humans for fun."], r:[['M',['white'],0.12]] },
+  rocket:     { tag:'hard', e:["A tall tube that spits fire and escapes the planet. We came in one.","White body, red nose, orange fire below. Goes UP.","Pointed flyer: red tip, white middle, flame beneath."], r:[['T',['red','white'],0.06],['M',['white','red'],0.08],['B',['orange','red'],0.05]] },
+  car:        { tag:'hard', e:["A coloured box on round brown feet. Rolls and honks.","Body of colour, brown wheels at the bottom.","Metal shell, round wheels, very loud."], r:[['M',['red','blue','yellow','green'],0.1],['B',['brown'],0.05]] },
+  snowman:    { tag:'hard', e:["Three white balls stacked, orange nose. Melts if happy.","White below, white middle, white top, orange bit.","A tower of cold white spheres. Carrot face."], r:[['B',['white'],0.07],['M',['white'],0.06],['T',['white','orange'],0.05]] },
+  rainbow:    { tag:'hard', e:["A giant coloured arc after the sky cries. Many colours at once.","Bands of colour curving across the top of the sky.","Red, yellow, green, blue — all arching together up high."], r:[['T',['red','orange','yellow'],0.06],['T',['green','blue','purple'],0.06]] },
+  butterfly:  { tag:'hard', e:["A colourful flutter-bug with big patterned wings.","Two bright wings, colourful. Was once a worm.","Delicate, colourful, flaps in the garden."], r:[['M',['purple','orange','blue','red'],0.12]] },
+  'ice cream':{ tag:'hard', e:["Cold white scoops on a brown pointy holder. Melts, then sadness.","Brown cone below, white/red scoops on top.","Frozen treat on a crunchy triangle."], r:[['B',['brown'],0.06],['T',['white','red','brown'],0.08]] },
+  lollipop:   { tag:'hard', e:["A round sweet on a white stick. Stains the tongue.","Colourful disc on top, thin white/brown stick below.","A circle of sugar you hold and lick."], r:[['T',['red','purple','orange'],0.1],['B',['white','brown'],0.03]] },
+  pizza:      { tag:'hard', e:["A hot cheesy triangle with red spots. Humans share it badly.","Yellow base, red toppings, brown crust. Smells amazing.","Triangle of melted food."], r:[['M',['yellow','orange'],0.08],['M',['red'],0.03]] },
+};
+const WORD_KEYS = Object.keys(WORDS);
+const POOLS = {
+  easy:  WORD_KEYS.filter(w=>WORDS[w].tag==='easy'),
+  med:   WORD_KEYS.filter(w=>WORDS[w].tag==='med'),
+  hard:  WORD_KEYS.filter(w=>WORDS[w].tag==='hard'),
+  food:  ['apple','banana','mushroom','pumpkin','carrot','strawberry','grapes','ice cream','pizza'],
 };
 
-// Day structure. Homeroom = tutorial. 5 real periods. Each pulls a word from a pool.
 const PERIODS = [
-  { name:'HOMEROOM',      clock:'8:40', tutorial:true,  timer:0,  pool:['mushroom'],                          lightName:'dawn' },
-  { name:'MORNING CIRCLE',clock:'9:10', timer:75, pool:['tree','snowman','house'],                            lightName:'morning' },
-  { name:'ART',           clock:'10:30',timer:70, pool:['house','umbrella','lamp','cactus'],  newMech:'NEW: While peeking, press E to mess with a neighbour\'s build. Only if nobody sees you.', lightName:'late-morning' },
-  { name:'SNACK TIME',    clock:'12:00',timer:65, pool:['ice cream cone','hamburger','birthday cake'],        lightName:'noon' },
-  { name:'SCIENCE',       clock:'1:30', timer:58, pool:['rocket','lighthouse','traffic light'],               lightName:'afternoon' },
-  { name:'LAST BELL',     clock:'3:00', timer:50, pool:['car','your family','rocket'],                        lightName:'dusk' },
+  { name:'HOMEROOM',       clock:'8:40', tutorial:true, timer:0,  pick:()=>'sun',                 light:'dawn' },
+  { name:'MORNING CIRCLE', clock:'9:10', timer:70, pick:()=>fromPool('easy'),                     light:'morning' },
+  { name:'ART',            clock:'10:30',timer:66, pick:()=>fromPool('med'), newMech:'NEW: hold E while peeking to scribble on a neighbour’s paper. Only if nobody sees you.', light:'late' },
+  { name:'SNACK TIME',     clock:'12:00',timer:60, pick:()=>fromPool('food'),                     light:'noon' },
+  { name:'SCIENCE',        clock:'1:30', timer:54, pick:()=>fromPool('hard'),                     light:'afternoon' },
+  { name:'LAST BELL',      clock:'3:00', timer:48, pick:()=>fromPool(Math.random()<0.5?'hard':'med'), light:'dusk' },
 ];
-
-// light presets per lightName
 const LIGHTS = {
-  dawn:        { sky:0x4a5578, dir:0xffe0b0, dirI:1.05, amb:0x8893b0, ambI:0.95, pos:[-6,7,-4] },
-  morning:     { sky:0x9cc0ec, dir:0xfff4e0, dirI:1.25, amb:0xc0ccdf, ambI:1.0, pos:[-5,9,2] },
-  'late-morning':{ sky:0xb4d2f4, dir:0xfffaf0, dirI:1.3, amb:0xccd6e6, ambI:1.05, pos:[-2,10,3] },
-  noon:        { sky:0xc6def8, dir:0xffffff, dirI:1.35, amb:0xd2dcec, ambI:1.08, pos:[1,11,2] },
-  afternoon:   { sky:0xf0d2a6, dir:0xffe2b2, dirI:1.25, amb:0xd8c9a8, ambI:1.0, pos:[5,8,1] },
-  dusk:        { sky:0xf0a878, dir:0xffb070, dirI:1.1, amb:0xa896b0, ambI:0.92, pos:[7,6,-2] },
+  dawn:   { sky:0x4a5578, dir:0xffe0b0, dirI:1.0, amb:0x8893b0, ambI:0.95, pos:[-6,8,-3] },
+  morning:{ sky:0x9cc0ec, dir:0xfff4e0, dirI:1.2, amb:0xc0ccdf, ambI:1.0,  pos:[-5,9,2] },
+  late:   { sky:0xb4d2f4, dir:0xfffaf0, dirI:1.25,amb:0xccd6e6, ambI:1.05, pos:[-2,10,3] },
+  noon:   { sky:0xc6def8, dir:0xffffff, dirI:1.3, amb:0xd2dcec, ambI:1.08, pos:[1,11,2] },
+  afternoon:{sky:0xf0d2a6,dir:0xffe2b2, dirI:1.2, amb:0xd8c9a8, ambI:1.0,  pos:[5,8,1] },
+  dusk:   { sky:0xf0a878, dir:0xffb070, dirI:1.05,amb:0xa896b0, ambI:0.92, pos:[7,6,-2] },
 };
-
-// Teacher grade-comment pools keyed by grade letter.
-const GRADE_COMMENTS = {
-  A:["Lovely! Just lovely.","Textbook work, new kid.","Someone did the reading.","A+ energy.","Gold star material."],
-  B:["Nice effort.","Close! Very close.","Solid work.","I see what you did there.","Almost perfect."],
-  C:["Hmm. It's… fine.","Interesting choices.","We'll call it abstract.","Passable, I suppose.","It's a start."],
-  D:["Oh dear.","Did you… try?","That's generous of me.","Needs work. A lot of it.","I'm concerned."],
-  F:["Why is it upside down?","What IS this?","Are you feeling okay?","This isn't even close.","…I have questions."],
-};
-
-// kids definitions
 const KID_DEFS = [
-  { name:'Timmy', side:'left',  body:0x3f7ad6, hair:0x6e4328, personality:'messy'  },
-  { name:'Priya', side:'right', body:0x9b55c7, hair:0x201a18, personality:'precise'},
-  { name:'Jojo',  side:'frontL',body:0xe8872b, hair:0x201a18, personality:'extra'  },
-  { name:'Bea',   side:'frontR',body:0x4fae54, hair:0x9a6a41, personality:'slow'   },
+  { name:'Timmy', side:'left',  body:0x3f7ad6, hair:0x8a5a34, pers:'messy'  },
+  { name:'Priya', side:'right', body:0x9b55c7, hair:0x201a18, pers:'precise'},
+  { name:'Jojo',  side:'frontL',body:0xef8a2b, hair:0x201a18, pers:'extra'  },
+  { name:'Bea',   side:'frontR',body:0x46b24e, hair:0x8a5a34, pers:'slow'   },
 ];
+const GRADE_COMMENTS = {
+  A:["Lovely! Just lovely.","Textbook work.","Someone paid attention.","Gold star!","Exactly right."],
+  B:["Nice effort.","Very close.","Solid work.","Almost perfect.","I like it."],
+  C:["It's... fine.","Interesting choices.","We'll call it abstract.","Passable.","Hmm. Okay."],
+  D:["Oh dear.","Did you try?","That's generous of me.","Needs a lot of work.","I'm worried."],
+  F:["What IS this?","Are you feeling okay?","Not even close.","...I have questions.","Did you draw with your eyes shut?"],
+};
+let usedWords = [];
+function fromPool(p){
+  let pool = POOLS[p].filter(w=>!usedWords.includes(w));
+  if(pool.length===0) pool = POOLS[p].slice();
+  const w = pool[(Math.random()*pool.length)|0];
+  usedWords.push(w); return w;
+}
+const pick = a => a[(Math.random()*a.length)|0];
 
-/* =========================== 2. RENDERING + DITHER =========================== */
-
-THREE.ColorManagement.enabled = false; // predictable colours for palette matching
-
-const RT_W = 400, RT_H = 225;           // low-res render target (16:9)
+/* =========================== 2. RENDER + DITHER =========================== */
+THREE.ColorManagement.enabled = false;
+const RT_W = 640, RT_H = 360;            // higher-res than before, still stylised
+const PAL_N = 32;
+const PALETTE_HEX = [
+  0x0c0d14,0x24283a,0x3c4155,0x5a6075,0x8f96a8,0xc2c8d4,0xe7ebf2,0xffffff,
+  0x6e4328,0x8a5a34,0xb07a46,0xc9a46a,0xe6c79a,0xf0c9a0,
+  0x2f7a3a,0x46b24e,0x7bd06a,  0x274f8a,0x3f7ad6,0x74a8e6,
+  0xb0301f,0xe23b3b,0xef8a2b,0xf6a24a,  0xf5d13e,0xfff0a0,
+  0x6e3a8a,0x9b55c7,  0x9cc0ec,0xc6def8,0xb4d2f4,0x101820,
+];
 const canvas = document.getElementById('scene');
-let renderer, scene, camera;
-let renderTarget, postScene, postCamera, postMat;
-
+let renderer, scene, camera, renderTarget, postScene, postCamera, postMat;
 function initRenderer(){
   renderer = new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' });
   renderer.setPixelRatio(1);
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-  renderer.shadowMap.enabled = false;
-
-  renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
-    minFilter: THREE.NearestFilter,
-    magFilter: THREE.NearestFilter,
-    depthBuffer: true,
-    type: THREE.UnsignedByteType,
-  });
-
-  // palette uniform as array of Vector3 (0..1)
-  const pal = PALETTE_HEX.map(h => new THREE.Vector3(((h>>16)&255)/255, ((h>>8)&255)/255, (h&255)/255));
-
+  renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, { minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter, depthBuffer:true });
+  const pal = PALETTE_HEX.map(h=>new THREE.Vector3(((h>>16)&255)/255,((h>>8)&255)/255,(h&255)/255));
   postMat = new THREE.ShaderMaterial({
-    uniforms: {
-      tDiffuse:   { value: renderTarget.texture },
-      uResolution:{ value: new THREE.Vector2(RT_W, RT_H) },
-      uPalette:   { value: pal },
-      uSpread:    { value: 0.10 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
-    `,
-    fragmentShader: `
-      precision highp float;
-      varying vec2 vUv;
-      uniform sampler2D tDiffuse;
-      uniform vec2 uResolution;
-      uniform vec3 uPalette[16];
-      uniform float uSpread;
-      // compact ordered Bayer 4x4 in [0,1)
-      float bayer2(vec2 a){ a = floor(a); return fract(a.x*0.5 + a.y*a.y*0.75); }
-      float bayer4(vec2 a){ return bayer2(0.5*a)*0.25 + bayer2(a); }
+    uniforms:{ tDiffuse:{value:renderTarget.texture}, uResolution:{value:new THREE.Vector2(RT_W,RT_H)},
+               uPalette:{value:pal}, uSpread:{value:0.05} },
+    vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+    fragmentShader:`precision highp float; varying vec2 vUv;
+      uniform sampler2D tDiffuse; uniform vec2 uResolution; uniform vec3 uPalette[${PAL_N}]; uniform float uSpread;
+      float b2(vec2 a){ a=floor(a); return fract(a.x*0.5+a.y*a.y*0.75); }
+      float b4(vec2 a){ return b2(0.5*a)*0.25+b2(a); }
       void main(){
-        vec3 c = texture2D(tDiffuse, vUv).rgb;
-        float d = (bayer4(vUv*uResolution) - 0.5) * uSpread;
-        c += d;
-        float best = 1e9;
-        vec3 bc = uPalette[0];
-        for(int i=0;i<16;i++){
-          vec3 p = uPalette[i];
-          float dist = distance(c, p);
-          if(dist < best){ best = dist; bc = p; }
-        }
-        gl_FragColor = vec4(bc, 1.0);
-      }
-    `,
+        vec3 c = texture2D(tDiffuse,vUv).rgb;
+        c += (b4(vUv*uResolution)-0.5)*uSpread;
+        float best=1e9; vec3 bc=uPalette[0];
+        for(int i=0;i<${PAL_N};i++){ vec3 p=uPalette[i]; float d=distance(c,p); if(d<best){best=d;bc=p;} }
+        gl_FragColor=vec4(bc,1.);
+      }`,
   });
-
-  postCamera = new THREE.Camera(); // clip-space fullscreen triangle/quad
-  postScene = new THREE.Scene();
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), postMat);
-  quad.frustumCulled = false;
-  postScene.add(quad);
+  postCamera = new THREE.Camera(); postScene = new THREE.Scene();
+  const q = new THREE.Mesh(new THREE.PlaneGeometry(2,2), postMat); q.frustumCulled=false; postScene.add(q);
 }
-
 function renderFrame(){
-  renderer.setRenderTarget(renderTarget);
-  renderer.clear();
-  renderer.render(scene, camera);
-  renderer.setRenderTarget(null);
-  renderer.render(postScene, postCamera);
+  renderer.setRenderTarget(renderTarget); renderer.clear(); renderer.render(scene,camera);
+  renderer.setRenderTarget(null); renderer.render(postScene,postCamera);
 }
-
 function resize(){
-  const w = window.innerWidth, h = window.innerHeight;
-  renderer.setSize(w, h, false);
-  // keep RT fixed low-res; camera aspect matches RT aspect (letterbox handled by CSS fill)
-  camera.aspect = RT_W / RT_H;
-  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  camera.aspect = RT_W/RT_H; camera.updateProjectionMatrix();
 }
 
-/* =========================== 3. CLASSROOM SCENE =========================== */
-
-// shared mutable game state (populated in BOOT)
+/* =========================== 3. SCENE =========================== */
 let G = null;
+const CW = 320, CH = 320;                 // per-student paper canvas resolution
+const PAPER_SIZE = 1.9;                   // paper plane world size
+const DESK_TOP = 0.92;
+const SEATS = {
+  player:{x:0,z:3.2}, Timmy:{x:-3.0,z:3.2}, Priya:{x:3.0,z:3.2},
+  Jojo:{x:-1.65,z:0.5}, Bea:{x:1.65,z:0.5},
+};
+const MAT = {};
+function lambert(h){ if(!MAT[h]) MAT[h]=new THREE.MeshLambertMaterial({color:h,flatShading:true}); return MAT[h]; }
 
-// --- geometry + material caches ---
-const GEO = {};
-function wedgeGeometry(){
-  const s = new THREE.Shape();
-  s.moveTo(-0.5,-0.5); s.lineTo(0.5,-0.5); s.lineTo(-0.5,0.5); s.lineTo(-0.5,-0.5);
-  const g = new THREE.ExtrudeGeometry(s, { depth:1, bevelEnabled:false });
-  g.translate(0,0,-0.5);
-  g.computeVertexNormals();
-  return g;
-}
-function initGeometry(){
-  GEO.cube     = new THREE.BoxGeometry(1,1,1);
-  GEO.sphere   = new THREE.SphereGeometry(0.58,14,10);
-  GEO.cylinder = new THREE.CylinderGeometry(0.5,0.5,1,16);
-  GEO.cone     = new THREE.ConeGeometry(0.58,1,16);
-  GEO.wedge    = wedgeGeometry();
-}
-const MATCACHE = {};
-function lambert(hex, opts={}){
-  const key = hex + '|' + (opts.transparent?('t'+opts.opacity):'') ;
-  if(MATCACHE[key]) return MATCACHE[key];
-  const m = new THREE.MeshLambertMaterial({ color:hex, flatShading:true });
-  if(opts.transparent){ m.transparent = true; m.opacity = opts.opacity; }
-  MATCACHE[key] = m; return m;
-}
-// unit meshes are built at scale 1; piece size handled via mesh.scale
-function makePiece(shape, colorName, sizeScale){
-  const mesh = new THREE.Mesh(GEO[shape], lambert(COLORS[colorName]));
-  mesh.scale.setScalar(sizeScale);
-  mesh.userData.shape = shape;
-  mesh.userData.color = colorName;
-  return mesh;
-}
-
-// --- lights ---
 let ambLight, dirLight, hemiLight;
 function applyLight(name){
-  const L = LIGHTS[name] || LIGHTS.morning;
+  const L = LIGHTS[name]||LIGHTS.morning;
   scene.background = new THREE.Color(L.sky);
   if(scene.fog) scene.fog.color.setHex(L.sky);
-  ambLight.color.setHex(L.amb); ambLight.intensity = L.ambI;
-  hemiLight.color.setHex(L.sky); hemiLight.groundColor.setHex(0x6e4328);
-  dirLight.color.setHex(L.dir); dirLight.intensity = L.dirI;
-  dirLight.position.set(L.pos[0], L.pos[1], L.pos[2]);
+  ambLight.color.setHex(L.amb); ambLight.intensity=L.ambI;
+  hemiLight.color.setHex(L.sky);
+  dirLight.color.setHex(L.dir); dirLight.intensity=L.dirI; dirLight.position.set(...L.pos);
+  for(const w of G_windows) w.material.color.setHex(L.sky);
 }
 
-// --- seats ---
-const SEATS = {
-  player: { x:0,     z:3.0 },
-  Timmy:  { x:-2.35, z:3.0 },
-  Priya:  { x:2.35,  z:3.0 },
-  Jojo:   { x:-1.2,  z:0.2 },
-  Bea:    { x:1.2,   z:0.2 },
-};
-const DESK_TOP = 0.78;
+// --- paper (offscreen canvas -> texture -> plane) ---
+function clearPaper(ctx){ ctx.fillStyle=PAPER; ctx.fillRect(0,0,CW,CH); }
+function createPaper(x,z){
+  const cvs = document.createElement('canvas'); cvs.width=CW; cvs.height=CH;
+  const ctx = cvs.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round';
+  clearPaper(ctx);
+  const tex = new THREE.CanvasTexture(cvs); tex.magFilter=THREE.NearestFilter; tex.minFilter=THREE.LinearMipmapLinearFilter;
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(PAPER_SIZE,PAPER_SIZE), new THREE.MeshBasicMaterial({map:tex}));
+  plane.rotation.x = -Math.PI/2;
+  plane.position.set(x, DESK_TOP+0.08, z-0.05);   // sit just above the desk top surface
+  return { cvs, ctx, tex, plane };
+}
 
 function makeDesk(x,z){
   const g = new THREE.Group();
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.25,0.1,0.8), lambert(0xc9a46a));
-  top.position.set(0, DESK_TOP, 0);
-  g.add(top);
-  const legGeo = new THREE.BoxGeometry(0.1,DESK_TOP,0.1);
-  const legMat = lambert(0x6e4328);
-  for(const lx of [-0.52,0.52]) for(const lz of [-0.3,0.3]){
-    const leg = new THREE.Mesh(legGeo, legMat);
-    leg.position.set(lx, DESK_TOP/2, lz); g.add(leg);
-  }
-  g.position.set(x,0,z);
-  return g;
-}
-function makeMat(x,z){
-  const mat = new THREE.Mesh(new THREE.BoxGeometry(0.95,0.04,0.62), lambert(0x8a8a9a));
-  mat.position.set(x, DESK_TOP+0.07, z-0.03);
-  return mat;
+  const top = new THREE.Mesh(new THREE.BoxGeometry(2.3,0.12,1.7), lambert(0xc9a46a));
+  top.position.y = DESK_TOP; g.add(top);
+  const legMat=lambert(0x6e4328), legGeo=new THREE.BoxGeometry(0.14,DESK_TOP,0.14);
+  for(const lx of [-1.0,1.0]) for(const lz of [-0.7,0.7]){ const l=new THREE.Mesh(legGeo,legMat); l.position.set(lx,DESK_TOP/2,lz); g.add(l); }
+  g.position.set(x,0,z); return g;
 }
 
-// --- kid characters ---
 function makeKid(def){
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.33,0.42,0.9,10), lambert(def.body));
-  body.position.y = DESK_TOP+0.05+0.45; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5), lambert(0xf0c9a0));
-  head.position.y = DESK_TOP+0.05+0.9+0.3; g.add(head);
-  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.56,0.22,0.56), lambert(def.hair));
-  hair.position.y = head.position.y + 0.3; g.add(hair);
-  // tiny arms
-  const armGeo = new THREE.BoxGeometry(0.14,0.5,0.14);
-  for(const sx of [-0.4,0.4]){
-    const arm = new THREE.Mesh(armGeo, lambert(def.body));
-    arm.position.set(sx, DESK_TOP+0.05+0.55, 0.15);
-    arm.rotation.x = -0.6; g.add(arm);
-  }
-  g.userData.head = head;
-  g.userData.hair = hair;
-  return g;
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.46,0.95,10),lambert(def.body));
+  body.position.y=DESK_TOP+0.5; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.52,0.52),lambert(0xf0c9a0));
+  head.position.y=DESK_TOP+1.25; g.add(head);
+  const hair=new THREE.Mesh(new THREE.BoxGeometry(0.58,0.22,0.58),lambert(def.hair));
+  hair.position.y=DESK_TOP+1.55; g.add(hair);
+  const armGeo=new THREE.BoxGeometry(0.15,0.52,0.15);
+  for(const sx of [-0.42,0.42]){ const a=new THREE.Mesh(armGeo,lambert(def.body)); a.position.set(sx,DESK_TOP+0.6,0.2); a.rotation.x=-0.7; g.add(a); }
+  g.userData.head=head; return g;
 }
 
-// --- teacher ---
 function makeTeacher(){
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.5,1.25,12), lambert(0x9b55c7));
-  body.position.y = 0.95; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.46,0.5,0.46), lambert(0xf0c9a0));
-  head.position.y = 1.85; g.add(head);
-  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.54,0.42,0.54), lambert(0x8a8a9a));
-  hair.position.y = 2.02; g.add(hair);
-  // nose / face direction marker (points +z local = forward)
-  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.14), lambert(0xe08a2e));
-  nose.position.set(0,1.82,0.26); g.add(nose);
-  // glasses hint
-  const gl = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.08,0.05), lambert(0x12121c));
-  gl.position.set(0,1.9,0.24); g.add(gl);
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.52,1.3,12),lambert(0x9b55c7)); body.position.y=1.0; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.48,0.52,0.48),lambert(0xf0c9a0)); head.position.y=1.92; g.add(head);
+  const hair=new THREE.Mesh(new THREE.BoxGeometry(0.56,0.44,0.56),lambert(0x8f96a8)); hair.position.y=2.1; g.add(hair);
+  const nose=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.16),lambert(0xef8a2b)); nose.position.set(0,1.9,0.26); g.add(nose);
+  const glasses=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.1,0.05),lambert(0x101820)); glasses.position.set(0,1.98,0.25); g.add(glasses);
   return g;
 }
 
-// --- alien hands (attached to camera) ---
-function makeHands(){
-  const hands = new THREE.Group();
-  const skin = lambert(0x4fae54);
-  const mitt = lambert(0xd83a3a);
-  function hand(sx){
-    const h = new THREE.Group();
-    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.12,0.3), mitt);
-    h.add(palm);
-    const fingGeo = new THREE.BoxGeometry(0.07,0.07,0.22);
-    for(let i=0;i<3;i++){
-      const f = new THREE.Mesh(fingGeo, skin);
-      f.position.set(-0.08 + i*0.08, 0.02, -0.24);
-      h.add(f);
-    }
-    const wrist = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.3), skin);
-    wrist.position.set(0,-0.02,0.22); h.add(wrist);
-    h.position.set(sx*0.52, -0.34, -0.82);
-    h.rotation.x = -0.7; h.rotation.z = sx*0.22;
-    return h;
-  }
-  hands.add(hand(-1)); hands.add(hand(1));
-  return hands;
+// vision cone fan opening toward +z local
+function makeConeFan(range, half, segs=22){
+  const pos=[0,0,0]; const idx=[];
+  for(let i=0;i<=segs;i++){ const t=-half+(2*half)*(i/segs); pos.push(Math.sin(t)*range,0,Math.cos(t)*range); }
+  for(let i=1;i<=segs;i++){ idx.push(0,i,i+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
 }
 
-// --- room shell ---
+// one alien hand holding a crayon (hovers over the draw point)
+let handGroup=null, crayonTip=null;
+function makeHand(){
+  const g=new THREE.Group();
+  const skin=lambert(0x46b24e);
+  const palm=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.14,0.34),skin); g.add(palm);
+  const fg=new THREE.BoxGeometry(0.08,0.08,0.26);
+  for(let i=0;i<3;i++){ const f=new THREE.Mesh(fg,skin); f.position.set(-0.09+i*0.09,0,-0.26); g.add(f); }
+  const wrist=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.18,0.5),skin); wrist.position.set(0.0,0.05,0.3); wrist.rotation.x=0.5; g.add(wrist);
+  crayonTip=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.5,8),lambert(COLORS.red));
+  crayonTip.position.set(0,-0.12,-0.34); crayonTip.rotation.x=0.5; g.add(crayonTip);
+  g.visible=false; return g;
+}
+
+let G_windows=[];
 function buildRoom(){
-  const room = new THREE.Group();
-  // floor
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(14,0.2,20), lambert(0xc9a46a));
-  floor.position.set(0,-0.1,-1); room.add(floor);
-  // back wall (behind player +z)
-  const wallMat = lambert(0xc8cdd6);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(14,6,0.3), wallMat);
-  back.position.set(0,3,6.5); room.add(back);
-  // front wall (-z) with chalkboard
-  const front = new THREE.Mesh(new THREE.BoxGeometry(14,6,0.3), wallMat);
-  front.position.set(0,3,-9); room.add(front);
-  const board = new THREE.Mesh(new THREE.BoxGeometry(8,3,0.1), lambert(0x2f7a3a));
-  board.position.set(0,2.6,-8.82); room.add(board);
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(8.4,3.4,0.08), lambert(0x6e4328));
-  frame.position.set(0,2.6,-8.86); room.add(frame);
-  // chalk scribbles (static little quads)
-  const chalk = lambert(0xececec);
-  for(let i=0;i<5;i++){
-    const s = new THREE.Mesh(new THREE.BoxGeometry(0.6+Math.random()*1.2,0.06,0.02), chalk);
-    s.position.set(-2.5+Math.random()*5, 1.8+Math.random()*1.4, -8.77);
-    s.rotation.z = (Math.random()-0.5)*0.2; room.add(s);
-  }
-  // side walls
-  const left = new THREE.Mesh(new THREE.BoxGeometry(0.3,6,20), wallMat);
-  left.position.set(-6.5,3,-1); room.add(left);
-  const right = new THREE.Mesh(new THREE.BoxGeometry(0.3,6,20), wallMat);
-  right.position.set(6.5,3,-1); room.add(right);
-  // windows on left wall — store refs to tint with daylight
-  G_windows.length = 0;
-  for(let i=0;i<3;i++){
-    const win = new THREE.Mesh(new THREE.BoxGeometry(0.12,1.8,1.6), lambert(0xbcd8f5,{transparent:true,opacity:0.85}));
-    win.position.set(-6.33, 3, -4 + i*2.6); room.add(win);
-    G_windows.push(win);
-  }
-  // ceiling
-  const ceil = new THREE.Mesh(new THREE.BoxGeometry(14,0.2,20), lambert(0x8a8a9a));
-  ceil.position.set(0,6,-1); room.add(ceil);
-  // teacher desk at front
-  const tdesk = new THREE.Mesh(new THREE.BoxGeometry(2.2,1.0,1.0), lambert(0x6e4328));
-  tdesk.position.set(-3.6,0.5,-7); room.add(tdesk);
-  // show & tell shelf (long table) at front centre
-  const shelf = new THREE.Mesh(new THREE.BoxGeometry(9,0.3,1.0), lambert(0xc9a46a));
-  shelf.position.set(0,1.0,-6.6); room.add(shelf);
-  for(const sx of [-4,-1.3,1.3,4]){
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15,1.0,0.15), lambert(0x6e4328));
-    leg.position.set(sx,0.5,-6.6); room.add(leg);
-  }
-  G_shelf = shelf;
+  const room=new THREE.Group();
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(18,0.2,24),lambert(0xc9a46a)); floor.position.set(0,-0.1,-2); room.add(floor);
+  const wall=lambert(0xc8cdd6);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(18,7,0.3),wall); back.position.set(0,3.5,7.5); room.add(back);
+  const front=new THREE.Mesh(new THREE.BoxGeometry(18,7,0.3),wall); front.position.set(0,3.5,-11); room.add(front);
+  const board=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,0.1),lambert(0x2f7a3a)); board.position.set(0,3,-10.82); room.add(board);
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(10.5,3.7,0.08),lambert(0x6e4328)); frame.position.set(0,3,-10.86); room.add(frame);
+  const chalk=lambert(0xececec);
+  for(let i=0;i<5;i++){ const s=new THREE.Mesh(new THREE.BoxGeometry(0.7+Math.random()*1.3,0.07,0.02),chalk);
+    s.position.set(-3+Math.random()*6,2.3+Math.random()*1.3,-10.76); s.rotation.z=(Math.random()-0.5)*0.2; room.add(s); }
+  const left=new THREE.Mesh(new THREE.BoxGeometry(0.3,7,24),wall); left.position.set(-8.5,3.5,-2); room.add(left);
+  const right=new THREE.Mesh(new THREE.BoxGeometry(0.3,7,24),wall); right.position.set(8.5,3.5,-2); room.add(right);
+  const ceil=new THREE.Mesh(new THREE.BoxGeometry(18,0.2,24),lambert(0x8f96a8)); ceil.position.set(0,7,-2); room.add(ceil);
+  G_windows.length=0;
+  for(let i=0;i<3;i++){ const w=new THREE.Mesh(new THREE.BoxGeometry(0.12,2.0,1.8),new THREE.MeshLambertMaterial({color:0x9cc0ec,transparent:true,opacity:0.85}));
+    w.position.set(-8.33,3.4,-5+i*3); room.add(w); G_windows.push(w); }
+  const tdesk=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.1,1.2),lambert(0x6e4328)); tdesk.position.set(-4.4,0.55,-8.5); room.add(tdesk);
   scene.add(room);
 }
-let G_windows = [];
-let G_shelf = null;
 
-// build whole scene + entities
 function buildScene(){
-  scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x8fb6e6, 14, 30);
-
-  camera = new THREE.PerspectiveCamera(55, RT_W/RT_H, 0.1, 100);
-  camera.position.set(0,3.2,5.4);
-
-  ambLight = new THREE.AmbientLight(0x9fb0cc, 0.65); scene.add(ambLight);
-  hemiLight = new THREE.HemisphereLight(0x8fb6e6, 0x6e4328, 0.5); scene.add(hemiLight);
-  dirLight = new THREE.DirectionalLight(0xfff2d8, 1.0); dirLight.position.set(-5,9,2); scene.add(dirLight);
-
+  scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x9cc0ec,18,40);
+  camera=new THREE.PerspectiveCamera(52,RT_W/RT_H,0.1,120); camera.position.set(0,6.3,4.1);
+  ambLight=new THREE.AmbientLight(0xc0ccdf,1.0); scene.add(ambLight);
+  hemiLight=new THREE.HemisphereLight(0x9cc0ec,0x6e4328,0.5); scene.add(hemiLight);
+  dirLight=new THREE.DirectionalLight(0xfff4e0,1.2); dirLight.position.set(-5,9,2); scene.add(dirLight);
   buildRoom();
+  handGroup=makeHand(); scene.add(handGroup);
 
-  // hands on camera
-  const hands = makeHands();
-  camera.add(hands);
-  scene.add(camera);
-
-  // entities: player + kids
-  const entities = {};
-  // player desk + mat + build group
-  scene.add(makeDesk(SEATS.player.x, SEATS.player.z));
-  const pmat = makeMat(SEATS.player.x, SEATS.player.z);
-  scene.add(pmat);
-  const pbuild = new THREE.Group();
-  pbuild.position.set(SEATS.player.x, DESK_TOP+0.09, SEATS.player.z-0.03);
-  scene.add(pbuild);
-  entities.player = { name:'You', isPlayer:true, mat:pmat, build:pbuild, pieces:[], seat:SEATS.player };
-
+  const entities={};
+  // player
+  scene.add(makeDesk(SEATS.player.x,SEATS.player.z));
+  const pp=createPaper(SEATS.player.x,SEATS.player.z); scene.add(pp.plane);
+  entities.player={ name:'You', isPlayer:true, seat:SEATS.player, paper:pp };
   // kids
   for(const def of KID_DEFS){
-    const seat = SEATS[def.name];
-    scene.add(makeDesk(seat.x, seat.z));
-    const mat = makeMat(seat.x, seat.z);
-    scene.add(mat);
-    const kid = makeKid(def);
-    // kid sits behind the desk (further from board for L/R, in front row they face board)
-    const facingFront = (def.side==='frontL'||def.side==='frontR');
-    kid.position.set(seat.x, 0, seat.z + 0.5);
-    scene.add(kid);
-    const build = new THREE.Group();
-    build.position.set(seat.x, DESK_TOP+0.09, seat.z-0.03);
-    scene.add(build);
-    entities[def.name] = {
-      name:def.name, def, isPlayer:false, seat, mat, build, pieces:[],
-      mesh:kid, head:kid.userData.head, facingFront,
-      glanceTimer: 4+Math.random()*4, glanceState:'idle', glanceClock:0,
-      variant:null, recipeStep:0, addClock:0, finished:false, catchCd:0,
-    };
+    const s=SEATS[def.name];
+    scene.add(makeDesk(s.x,s.z));
+    const pap=createPaper(s.x,s.z); scene.add(pap.plane);
+    const kid=makeKid(def); kid.position.set(s.x,0,s.z+0.62); scene.add(kid);
+    entities[def.name]={ name:def.name, def, isPlayer:false, seat:s, paper:pap, mesh:kid, head:kid.userData.head,
+      side:def.side, glanceTimer:4+Math.random()*4, glanceState:'idle', glanceClock:0, catchCd:0,
+      plan:null, step:0, addClock:0, finished:false, competence:1 };
   }
-  G && (G.entities = entities);
+  // teacher + vision cone
+  teacher=makeTeacher(); teacher.position.set(-4.4,0,-8); scene.add(teacher);
+  visionCone=new THREE.Mesh(makeConeFan(CONE_RANGE,CONE_HALF_ANG,24),
+    new THREE.MeshBasicMaterial({color:0xf5d13e,transparent:true,opacity:0.2,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
+  visionCone.position.y=0.05; visionCone.renderOrder=999; scene.add(visionCone);
+
+  scene.add(camera);
   return entities;
 }
 
-/* =========================== 4. BUILD SYSTEM =========================== */
-
-const SIZE_CLASS = s => (s < 0.68 ? 'small' : s > 1.12 ? 'large' : 'medium');
-const SIZE_MIN = 0.4, SIZE_MAX = 1.6, SIZE_STEP = 0.12;
-const MAX_PIECES = 12;
-
-const tool = { shape:'cube', color:'red', size:0.9, yaw:0, inverted:false };
-let ghost = null;
-const pointerNDC = new THREE.Vector2(-2,-2);
-let pointerOnCanvas = false;
+/* =========================== 4. DRAW SYSTEM =========================== */
+const tool = { color:'red', size:12, erase:false };
+const BRUSHES = { small:6, med:12, large:22 };
 const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2(-2,-2);
+let pointerOnCanvas=false, drawing=false, lastDraw=null;
+const undoStack=[];
 
-function initGeometryBounds(){
-  for(const k in GEO){ GEO[k].computeBoundingBox(); }
-}
-function pieceHalfExtents(shape, size){
-  const bb = GEO[shape].boundingBox;
-  return new THREE.Vector3(
-    (bb.max.x-bb.min.x)/2*size,
-    (bb.max.y-bb.min.y)/2*size,
-    (bb.max.z-bb.min.z)/2*size );
-}
-function orientMesh(mesh, yaw, inverted){
-  mesh.rotation.set(inverted?Math.PI:0, yaw, 0);
-}
-function makeGhost(){
-  ghost = new THREE.Mesh(GEO[tool.shape], lambert(COLORS[tool.color], {transparent:true, opacity:0.5}));
-  ghost.visible = false;
-  scene.add(ghost);
-}
-function refreshGhostAppearance(){
-  if(!ghost) return;
-  ghost.geometry = GEO[tool.shape];
-  ghost.material = lambert(COLORS[tool.color], {transparent:true, opacity:0.5});
-  ghost.scale.setScalar(tool.size);
-  orientMesh(ghost, tool.yaw, tool.inverted);
-}
+function canDrawNow(){ return G && G.phase==='draw' && G.lean===0 && !G.paused; }
 
-function canBuildNow(){
-  return G && G.phase==='build' && G.lean===0 && !G.paused;
-}
-
-function updateGhost(){
-  if(!ghost) return;
-  const p = G.entities.player;
-  if(!canBuildNow() || !pointerOnCanvas || p.pieces.length>=MAX_PIECES){ ghost.visible=false; return; }
+function uvToCanvas(uv){ return { x:uv.x*CW, y:(1-uv.y)*CH }; }
+function raycastPaper(plane){
   raycaster.setFromCamera(pointerNDC, camera);
-  const targets = [p.mat, ...p.pieces.map(pc=>pc.mesh)];
-  const hits = raycaster.intersectObjects(targets, false);
-  if(hits.length===0){ ghost.visible=false; return; }
-  const hit = hits[0];
-  const n = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : new THREE.Vector3(0,1,0);
-  const he = pieceHalfExtents(tool.shape, tool.size);
-  const off = Math.abs(n.x)*he.x + Math.abs(n.y)*he.y + Math.abs(n.z)*he.z;
-  ghost.position.copy(hit.point).addScaledVector(n, off);
-  ghost.scale.setScalar(tool.size);
-  orientMesh(ghost, tool.yaw, tool.inverted);
-  // keep within the desk mat footprint (soft clamp)
-  const b = p.build.position;
-  ghost.position.x = THREE.MathUtils.clamp(ghost.position.x, b.x-0.55, b.x+0.55);
-  ghost.position.z = THREE.MathUtils.clamp(ghost.position.z, b.z-0.4, b.z+0.4);
-  ghost.position.y = Math.max(ghost.position.y, b.y);
-  ghost.visible = true;
+  const hit=raycaster.intersectObject(plane,false);
+  return hit.length? hit[0] : null;
 }
-
-function placePlayerPiece(){
-  if(!ghost || !ghost.visible) return;
-  const p = G.entities.player;
-  if(p.pieces.length>=MAX_PIECES) return;
-  const mesh = makePiece(tool.shape, tool.color, tool.size);
-  mesh.position.copy(ghost.position);
-  orientMesh(mesh, tool.yaw, tool.inverted);
-  p.build.add(mesh);
-  // local position relative to the build group (group has no rotation/scale)
-  const local = ghost.position.clone().sub(p.build.position);
-  p.pieces.push({ mesh, shape:tool.shape, color:tool.color, size:tool.size, yaw:tool.yaw, inverted:tool.inverted, local });
-  sfxPlace();
-  if(G.tutorial) Tutorial.notify('place');
-  updateGoalStrip();
+function paintSeg(ctx, from, to){
+  ctx.strokeStyle = tool.erase? PAPER : COLOR_CSS[tool.color];
+  ctx.lineWidth = tool.erase? Math.max(tool.size,18) : tool.size;
+  ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(to.x,to.y); ctx.stroke();
+  // round dot so single taps register
+  ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(to.x,to.y,ctx.lineWidth/2,0,7); ctx.fill();
 }
-
-function undoPlayerPiece(){
-  const p = G.entities.player;
-  if(p.pieces.length===0) return;
-  const pc = p.pieces.pop();
-  p.build.remove(pc.mesh);
-  sfxUndo();
-  updateGoalStrip();
+function pushUndo(){
+  const p=G.entities.player.paper;
+  try{ undoStack.push(p.ctx.getImageData(0,0,CW,CH)); if(undoStack.length>15) undoStack.shift(); }catch(e){}
 }
+function undoDraw(){
+  const p=G.entities.player.paper;
+  if(undoStack.length===0){ clearPaper(p.ctx); p.tex.needsUpdate=true; return; }
+  const img=undoStack.pop(); p.ctx.putImageData(img,0,0); p.tex.needsUpdate=true;
+}
+function clearDraw(){ const p=G.entities.player.paper; pushUndo(); clearPaper(p.ctx); p.tex.needsUpdate=true; }
 
-// tool setters (wired by UI + keys)
-function setShape(s){ if(SHAPES.includes(s)){ tool.shape=s; refreshGhostAppearance(); updateToolbarUI(); } }
-function setColor(c){ if(COLORS[c]!=null){ tool.color=c; refreshGhostAppearance(); updateToolbarUI(); } }
-function nudgeSize(dir){ tool.size = THREE.MathUtils.clamp(tool.size + dir*SIZE_STEP, SIZE_MIN, SIZE_MAX); refreshGhostAppearance(); updateSizeReadout(); }
-function rotateTool(){ tool.yaw += Math.PI/4; refreshGhostAppearance(); }
-function flipTool(){ tool.inverted = !tool.inverted; refreshGhostAppearance(); }
+function startStroke(){
+  if(!canDrawNow()) return;
+  const p=G.entities.player.paper;
+  const hit=raycastPaper(p.plane); if(!hit) return;
+  pushUndo(); drawing=true;
+  lastDraw=uvToCanvas(hit.uv); paintSeg(p.ctx,lastDraw,lastDraw); p.tex.needsUpdate=true;
+  if(G.tutorial) Tutorial.notify('draw');
+}
+function moveStroke(){
+  if(!drawing || !canDrawNow()) return;
+  const p=G.entities.player.paper;
+  const hit=raycastPaper(p.plane); if(!hit) return;
+  const cur=uvToCanvas(hit.uv); paintSeg(p.ctx,lastDraw,cur); lastDraw=cur; p.tex.needsUpdate=true;
+  G.drewSomething=true;
+}
+function endStroke(){ drawing=false; lastDraw=null; }
+
+function setColor(c){ tool.color=c; tool.erase=false; refreshTools(); }
+function setBrush(name){ tool.size=BRUSHES[name]; tool.brush=name; tool.erase=false; refreshTools(); }
+function setErase(){ tool.erase=!tool.erase; refreshTools(); }
+
+// hand + crayon hover
+function updateHand(){
+  if(!handGroup) return;
+  if(!canDrawNow() || !pointerOnCanvas){ handGroup.visible=false; return; }
+  const p=G.entities.player.paper;
+  const hit=raycastPaper(p.plane);
+  if(!hit){ handGroup.visible=false; return; }
+  handGroup.visible=true;
+  handGroup.position.copy(hit.point).add(new THREE.Vector3(0.18,0.34,0.12));
+  if(crayonTip) crayonTip.material = lambert(tool.erase?0xf4a0a0:COLORS[tool.color]);
+}
 
 /* =========================== 5. KID AI =========================== */
+const BAND_Y = { T:[0.08,0.36], M:[0.36,0.66], B:[0.66,0.92] };
+function blob(ctx,x,y,r,color){ ctx.fillStyle=COLOR_CSS[color]; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
 
-const BAND_Y = { base:0.24, middle:0.66, top:1.08 };
-const SIZE_VAL = { small:0.55, medium:0.9, large:1.35 };
-
-function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
-
-// turn a recipe variant into an ordered list of concrete pieces a kid will place
-function planFromVariant(variant, personality){
-  const plan = [];
-  const order = { base:0, middle:1, top:2 };
-  const sorted = variant.slice().sort((a,b)=>order[a.band]-order[b.band]);
-  for(const part of sorted){
-    const n = Math.max(part.count[0], Math.min(part.count[1], part.count[0] + ((Math.random()<0.6)?1:0)));
-    const cnt = part.count[0]===0 ? (Math.random()<0.5?0:1) : n;
-    for(let i=0;i<cnt;i++){
-      let color = pick(part.colors);
-      let size = SIZE_VAL[part.size];
-      let yaw = 0, inverted = part.orientation==='inverted';
-      if(personality==='messy'){
-        if(Math.random()<0.12) color = pick(COLOR_KEYS);
-        size *= 0.8 + Math.random()*0.45;
-        yaw = Math.random()*Math.PI;
-      } else if(personality==='precise'){
-        size *= 0.97 + Math.random()*0.06;
-      } else {
-        size *= 0.9 + Math.random()*0.2;
-        yaw = (Math.random()-0.5)*0.4;
-      }
-      // spread multiple pieces of a part out horizontally a touch
-      const spread = (part.count[1]>1) ? (i-(cnt-1)/2)*0.26 : 0;
-      plan.push({ shape:pick(part.shapes), color, size, band:part.band,
-        yaw, inverted,
-        jx:spread + (Math.random()-0.5)*(personality==='messy'?0.22:0.08),
-        jz:(Math.random()-0.5)*(personality==='messy'?0.18:0.06) });
-    }
+function planFor(word, pers){
+  const w=WORDS[word]; const plan=[];
+  const push=(band,color,n,jit)=>{ for(let i=0;i<n;i++){ const [a,b]=BAND_Y[band];
+    plan.push({ band, color, bx:0.32+Math.random()*0.36+(Math.random()-0.5)*(jit||0),
+      by:a+Math.random()*(b-a), r:14+Math.random()*12 }); } };
+  // competence: some kids do a poor/misleading job (precise rarely, slow/messy more)
+  const badChance = pers==='precise'?0.08 : pers==='extra'?0.2 : pers==='messy'?0.3 : 0.35;
+  const bad = Math.random()<badChance;
+  if(bad){
+    // misleading: wrong colours in wrong places, or a plausible-but-wrong single colour
+    const nb=3+(Math.random()*3|0); const bands=['T','M','B'];
+    const wrong = pick(COLOR_KEYS.filter(c=>c!=='white'));
+    for(let i=0;i<nb;i++) push(pick(bands), Math.random()<0.5?wrong:pick(COLOR_KEYS), 1, 0.2);
+    return { plan, bad:true };
   }
-  if(personality==='extra'){
-    const k = 1 + (Math.random()<0.5?1:0);
-    for(let i=0;i<k;i++) plan.push({ shape:pick(SHAPES), color:pick(COLOR_KEYS), size:0.5,
-      band:'top', yaw:Math.random()*Math.PI, inverted:false,
-      jx:(Math.random()-0.5)*0.5, jz:(Math.random()-0.5)*0.3 });
+  for(const part of w.r){
+    const [band, cols] = part;
+    const col = cols[0];
+    const n = pers==='slow'?2:(pers==='precise'?4:3);
+    push(band, col, n, pers==='messy'?0.25:0.08);
+    if(pers==='messy' && Math.random()<0.2) push(band, pick(COLOR_KEYS), 1, 0.3); // stray colour
   }
-  return plan;
+  if(pers==='extra'){ const b=pick(['T','M','B']); push(b, pick(COLOR_KEYS), 1, 0.3); } // flair
+  return { plan, bad:false };
 }
 
 function kidsStartPeriod(word){
-  const w = WORDS[word];
   for(const def of KID_DEFS){
-    const e = G.entities[def.name];
-    // clear previous build
-    for(const pc of e.pieces) e.build.remove(pc.mesh);
-    e.pieces = [];
-    const variant = pick(w.variants);
-    e.plan = planFromVariant(variant, def.personality);
-    // slow kid may give up early
-    if(def.personality==='slow' && Math.random()<0.4){
-      e.plan = e.plan.slice(0, Math.max(1, e.plan.length-1-((Math.random()*2)|0)));
-    }
-    e.recipeStep = 0;
-    const span = Math.max(8, (G.period.timer||40));
-    e.addInterval = Math.max(1.0, span/(e.plan.length+2)) * (def.personality==='slow'?1.55:1);
-    e.addClock = 0.6 + Math.random()*e.addInterval;
-    e.finished = e.plan.length===0;
-    e.glanceTimer = 3 + Math.random()*4;
-    e.glanceState = 'idle'; e.glanceClock = 0;
-    e.catchCd = 0;
-    if(e.head) e.head.rotation.y = 0;
+    const e=G.entities[def.name];
+    clearPaper(e.paper.ctx); e.paper.tex.needsUpdate=true;
+    const p=planFor(word, def.pers);
+    e.plan=p.plan; e.badDraw=p.bad; e.step=0;
+    if(def.pers==='slow' && Math.random()<0.45) e.plan=e.plan.slice(0,Math.max(1,e.plan.length-1-(Math.random()*2|0)));
+    const span=Math.max(10,(G.period.timer||40));
+    e.addInterval=Math.max(0.7, span/(e.plan.length+2))*(def.pers==='slow'?1.5:1);
+    e.addClock=0.5+Math.random()*e.addInterval;
+    e.finished=e.plan.length===0;
+    e.glanceTimer=3+Math.random()*4; e.glanceState='idle'; e.glanceClock=0; e.catchCd=0;
+    if(e.head) e.head.rotation.y=0;
   }
 }
 
-function kidAddPiece(e){
-  const step = e.plan[e.recipeStep++];
-  if(!step){ e.finished = true; return; }
-  const mesh = makePiece(step.shape, step.color, step.size);
-  const y = BAND_Y[step.band] * 1.0 + step.size*0.1;
-  mesh.position.set(e.build.position.x + step.jx, e.build.position.y + y, e.build.position.z + step.jz);
-  orientMesh(mesh, step.yaw, step.inverted);
-  e.build.add(mesh);
-  const local = mesh.position.clone().sub(e.build.position);
-  e.pieces.push({ mesh, shape:step.shape, color:step.color, size:step.size, yaw:step.yaw, inverted:step.inverted, local });
-  if(e.recipeStep>=e.plan.length) e.finished = true;
+function kidDraw(e){
+  const s=e.plan[e.step++]; if(!s){ e.finished=true; return; }
+  blob(e.paper.ctx, s.bx*CW, s.by*CH, s.r, s.color);
+  e.paper.tex.needsUpdate=true;
+  if(e.step>=e.plan.length) e.finished=true;
 }
 
-// scripted glance (tutorial)
-function forceGlance(name){
-  const e = G.entities[name];
-  if(e && e.glanceState==='idle'){ e.glanceState='windup'; e.glanceClock=0.7; onGlanceWindup(e); }
-}
-
-function onGlanceWindup(e){
-  if(!e.facingFront || true){ showBang(e); }
-  sfxGlanceCue();
-}
+function forceGlance(name){ const e=G.entities[name]; if(e&&e.glanceState==='idle'){ e.glanceState='windup'; e.glanceClock=0.7; showBang(e); sfxGlanceCue(); } }
 
 function updateKids(dt){
   for(const def of KID_DEFS){
-    const e = G.entities[def.name];
-    // build over time during build phase
-    if(G.phase==='build' && !e.finished && !G.paused){
-      e.addClock -= dt;
-      if(e.addClock<=0){ kidAddPiece(e); e.addClock = e.addInterval*(0.7+Math.random()*0.6); }
-    }
-    // glance state machine (active in build phase)
-    if(e.catchCd>0) e.catchCd -= dt;
-    const headTarget = (def.side==='left'||def.side==='frontL') ? 0.95 : -0.95;
-    if(G.phase==='build' && !G.paused){
-      if(e.glanceState==='idle'){
-        e.glanceTimer -= dt;
-        if(e.glanceTimer<=0){ e.glanceState='windup'; e.glanceClock=0.6; onGlanceWindup(e); }
-        if(e.head) e.head.rotation.y = THREE.MathUtils.lerp(e.head.rotation.y, 0, 0.15);
-      } else if(e.glanceState==='windup'){
-        e.glanceClock -= dt;
-        if(e.head){ const t = 1-(e.glanceClock/0.6); e.head.rotation.y = THREE.MathUtils.lerp(0, headTarget, THREE.MathUtils.clamp(t,0,1)); }
+    const e=G.entities[def.name];
+    if(G.phase==='draw' && !e.finished && !G.paused){ e.addClock-=dt; if(e.addClock<=0){ kidDraw(e); e.addClock=e.addInterval*(0.7+Math.random()*0.6); } }
+    if(e.catchCd>0) e.catchCd-=dt;
+    const target=(def.side==='left'||def.side==='frontL')?0.95:-0.95;
+    if(G.phase==='draw' && !G.paused){
+      if(e.glanceState==='idle'){ e.glanceTimer-=dt;
+        if(e.glanceTimer<=0){ e.glanceState='windup'; e.glanceClock=0.6; showBang(e); sfxGlanceCue(); }
+        if(e.head) e.head.rotation.y=THREE.MathUtils.lerp(e.head.rotation.y,0,0.15);
+      } else if(e.glanceState==='windup'){ e.glanceClock-=dt;
+        if(e.head){ const t=1-(e.glanceClock/0.6); e.head.rotation.y=THREE.MathUtils.lerp(0,target,THREE.MathUtils.clamp(t,0,1)); }
         if(e.glanceClock<=0){ e.glanceState='look'; e.glanceClock=0.9; hideBang(e); }
-      } else if(e.glanceState==='look'){
-        e.glanceClock -= dt;
-        if(e.head) e.head.rotation.y = headTarget;
-        checkGlanceCatch(e, def);
-        if(e.glanceClock<=0){ e.glanceState='return'; e.glanceClock=0.4; }
-      } else if(e.glanceState==='return'){
-        e.glanceClock -= dt;
-        if(e.head) e.head.rotation.y = THREE.MathUtils.lerp(e.head.rotation.y, 0, 0.2);
-        if(e.glanceClock<=0){ e.glanceState='idle'; e.glanceTimer = (4+Math.random()*4) * (G.period.timer>0?Math.max(0.6, G.period.timer/70):1); }
+      } else if(e.glanceState==='look'){ e.glanceClock-=dt; if(e.head) e.head.rotation.y=target;
+        checkGlanceCatch(e,def); if(e.glanceClock<=0){ e.glanceState='return'; e.glanceClock=0.4; }
+      } else if(e.glanceState==='return'){ e.glanceClock-=dt;
+        if(e.head) e.head.rotation.y=THREE.MathUtils.lerp(e.head.rotation.y,0,0.2);
+        if(e.glanceClock<=0){ e.glanceState='idle'; e.glanceTimer=(4+Math.random()*4)*(G.period.timer>0?Math.max(0.6,G.period.timer/70):1); }
       }
-    } else {
-      if(e.head) e.head.rotation.y = THREE.MathUtils.lerp(e.head.rotation.y, 0, 0.1);
-      hideBang(e);
-    }
+    } else { if(e.head) e.head.rotation.y=THREE.MathUtils.lerp(e.head.rotation.y,0,0.1); hideBang(e); }
   }
 }
 
-function checkGlanceCatch(e, def){
-  if(def.side!=='left' && def.side!=='right') return;   // only immediate neighbours catch you
-  if(G.tutorial && !G.tutorialAllowCatch) return;         // tutorial: no penalty unless scripted step
+function checkGlanceCatch(e,def){
+  if(def.side!=='left'&&def.side!=='right') return;
+  if(G.tutorial && !G.tutorialAllowCatch) return;
   if(e.catchCd>0) return;
-  const leanSide = (def.side==='left') ? -1 : 1;
-  if(G.lean===leanSide){
-    e.catchCd = 3.0;
-    addSuspicion(10, 'Caught peeking');
-    speechPop(def.name, "Hey! Eyes on your own work!");
-    sfxCaught();
-    if(G.tutorial) Tutorial.notify('caught');
-    G.caughtPeekCount = (G.caughtPeekCount||0)+1;
-  }
+  const leanSide=(def.side==='left')?-1:1;
+  if(G.lean===leanSide){ e.catchCd=3.0; addSuspicion(10,'Caught peeking'); speechPop(def.name,"Hey! Eyes on your own!"); sfxCaught();
+    if(G.tutorial) Tutorial.notify('caught'); G.caughtPeek=(G.caughtPeek||0)+1; }
 }
 
 /* =========================== 6. TEACHER AI =========================== */
-
-const PATROL = [
-  new THREE.Vector3(-4,0,-6), new THREE.Vector3(3.8,0,-6), new THREE.Vector3(4,0,0),
-  new THREE.Vector3(4,0,4.4), new THREE.Vector3(-0.2,0,4.7), new THREE.Vector3(-4,0,4.4),
-  new THREE.Vector3(-4.3,0,0),
-];
-let teacher = null;
-const teacherState = { idx:0, pos:new THREE.Vector3(-4,0,-6), forward:new THREE.Vector3(0,0,1), speed:1.6, footClock:0, patrolling:false };
-const CONE_HALF = Math.cos(0.5);  // ~28.6 deg half-angle
-const CONE_RANGE = 7.5;
-
-function initTeacher(){
-  teacher = makeTeacher();
-  teacher.position.copy(teacherState.pos);
-  scene.add(teacher);
-}
+const CONE_RANGE = 8.0, CONE_HALF_ANG = 0.42;        // radians (half-angle of the cone)
+const CONE_HALF = Math.cos(CONE_HALF_ANG);
+let teacher=null, visionCone=null;
+const PATROL=[ new THREE.Vector3(-5,0,-8), new THREE.Vector3(4.5,0,-8), new THREE.Vector3(5.2,0,0),
+  new THREE.Vector3(5.2,0,4.8), new THREE.Vector3(0,0,5.1), new THREE.Vector3(-5.2,0,4.8), new THREE.Vector3(-5.6,0,0) ];
+const teacherState={ idx:0, pos:new THREE.Vector3(-4.4,0,-8), forward:new THREE.Vector3(0,0,1), speed:1.7, foot:0, patrolling:false, stTarget:null, seenFlag:false };
 
 function updateTeacher(dt){
-  if(!teacherState.patrolling || G.paused){ setVignette(0,0); return; }
-  const target = PATROL[teacherState.idx];
-  const toT = target.clone().sub(teacherState.pos); toT.y=0;
-  const dist = toT.length();
-  if(dist < 0.15){ teacherState.idx = (teacherState.idx+1)%PATROL.length; }
-  else {
-    const dir = toT.normalize();
-    teacherState.forward.lerp(dir, 0.15).normalize();
-    teacherState.pos.addScaledVector(dir, Math.min(dist, teacherState.speed*dt));
+  if(!teacherState.patrolling || G.paused){ setVignette(0,0); if(visionCone) visionCone.visible=false; showGazeWarn(false); return; }
+  if(visionCone) visionCone.visible=true;
+  if(!teacherState.freeze){
+    const t=PATROL[teacherState.idx]; const to=t.clone().sub(teacherState.pos); to.y=0; const d=to.length();
+    if(d<0.15) teacherState.idx=(teacherState.idx+1)%PATROL.length;
+    else { const dir=to.normalize(); teacherState.forward.lerp(dir,0.15).normalize(); teacherState.pos.addScaledVector(dir,Math.min(d,teacherState.speed*dt)); }
   }
   teacher.position.copy(teacherState.pos);
-  teacher.rotation.y = Math.atan2(teacherState.forward.x, teacherState.forward.z);
+  teacher.rotation.y=Math.atan2(teacherState.forward.x,teacherState.forward.z);
+  visionCone.position.set(teacherState.pos.x,0.03,teacherState.pos.z); visionCone.rotation.y=teacher.rotation.y;
 
-  // footsteps: louder as she nears the player
-  const pseat = new THREE.Vector3(SEATS.player.x,0,SEATS.player.z);
-  const dPlayer = teacherState.pos.distanceTo(pseat);
-  teacherState.footClock -= dt;
-  if(teacherState.footClock<=0){
-    const vol = THREE.MathUtils.clamp(1 - dPlayer/9, 0.05, 1);
-    sfxFootstep(vol);
-    teacherState.footClock = 0.45;
-  }
+  const pseat=new THREE.Vector3(SEATS.player.x,0,SEATS.player.z);
+  const dPlayer=teacherState.pos.distanceTo(pseat);
+  teacherState.foot-=dt;
+  if(teacherState.foot<=0){ sfxFootstep(THREE.MathUtils.clamp(1-dPlayer/10,0.05,1)); teacherState.foot=0.45; }
 
-  // view-cone catch while leaning
-  if(G.lean!==0 && (!G.tutorial || G.tutorialAllowCatch)){
-    const toPlayer = pseat.clone().sub(teacherState.pos); toPlayer.y=0;
-    const d = toPlayer.length();
-    if(d < CONE_RANGE){
-      const dot = toPlayer.normalize().dot(teacherState.forward);
-      if(dot > CONE_HALF && (G.teacherCd||0)<=0){
-        G.teacherCd = 3.5;
-        addSuspicion(20, 'Teacher spotted you');
-        speechPop('Ms. Huxley', "Eyes on your OWN work, new kid.");
-        sfxCaught();
-      }
-    }
-  }
-  if(G.teacherCd>0) G.teacherCd -= dt;
+  // is the player inside the cone?
+  const toP=pseat.clone().sub(teacherState.pos); toP.y=0; const dp=toP.length();
+  let seen=false;
+  if(dp<CONE_RANGE){ seen = toP.normalize().dot(teacherState.forward) > CONE_HALF; }
+  visionCone.material.color.setHex(seen?0xe8503f:0xf5d13e);
+  visionCone.material.opacity = seen?0.42:0.2;
+  if(seen && !teacherState.seenFlag){ sfxGaze(); } teacherState.seenFlag=seen;
 
-  // vignette telegraph when she's close and not clearly in front of the player
-  updateTeacherVignette(dPlayer);
+  if(seen && G.lean!==0 && (!G.tutorial || G.tutorialAllowCatch)){
+    showGazeWarn(true);
+    if((G.teacherCd||0)<=0){ G.teacherCd=3.5; addSuspicion(20,'Teacher spotted you'); speechPop('Ms. Huxley',"Eyes on your OWN work, new kid."); sfxCaught(); }
+  } else showGazeWarn(false);
+  if(G.teacherCd>0) G.teacherCd-=dt;
+
+  updateVignette(dPlayer);
 }
-
-function updateTeacherVignette(dPlayer){
-  if(dPlayer > 5.6){ setVignette(0,0); return; }
-  const local = teacher.position.clone();
-  camera.worldToLocal(local);              // camera space: -z forward
-  const intensity = THREE.MathUtils.clamp(1 - (dPlayer-2)/3.6, 0, 1);
-  if(local.z < -1.5 && Math.abs(local.x) < 3){ setVignette(0,0); return; } // clearly in view ahead
-  // choose edge
-  let edge;
-  if(local.z > 0.5) edge = 'bottom';
-  else edge = local.x < 0 ? 'left' : 'right';
-  setVignette(intensity, edge);
+function updateVignette(dPlayer){
+  if(dPlayer>6){ setVignette(0,0); return; }
+  const local=teacher.position.clone(); camera.worldToLocal(local);
+  const intensity=THREE.MathUtils.clamp(1-(dPlayer-2)/4,0,1);
+  if(local.z<-2 && Math.abs(local.x)<3.5){ setVignette(0,0); return; }
+  let edge = local.z>0.5?'bottom':(local.x<0?'left':'right');
+  setVignette(intensity,edge);
 }
-
-let vigPulse = 0;
-function setVignette(intensity, edge){
-  const el = document.getElementById('vignette');
+let vigP=0;
+function setVignette(intensity,edge){
+  const el=document.getElementById('vignette');
   if(intensity<=0){ el.classList.remove('on'); return; }
-  vigPulse += 0.12;
-  const a = intensity * (0.5 + 0.5*Math.abs(Math.sin(vigPulse)));
-  let grad;
-  if(edge==='left')   grad = `linear-gradient(90deg, rgba(228,71,59,${a}) 0%, rgba(228,71,59,0) 30%)`;
-  else if(edge==='right') grad = `linear-gradient(270deg, rgba(228,71,59,${a}) 0%, rgba(228,71,59,0) 30%)`;
-  else grad = `linear-gradient(0deg, rgba(228,71,59,${a}) 0%, rgba(228,71,59,0) 32%)`;
-  el.style.background = grad;
-  el.classList.add('on');
+  vigP+=0.12; const a=intensity*(0.45+0.55*Math.abs(Math.sin(vigP)));
+  const g = edge==='left'?`linear-gradient(90deg,rgba(232,80,63,${a}) 0%,rgba(232,80,63,0) 30%)`
+    : edge==='right'?`linear-gradient(270deg,rgba(232,80,63,${a}) 0%,rgba(232,80,63,0) 30%)`
+    : `linear-gradient(0deg,rgba(232,80,63,${a}) 0%,rgba(232,80,63,0) 32%)`;
+  el.style.background=g; el.classList.add('on');
 }
+function teacherSeesPlayer(){
+  if(!teacherState.patrolling) return false;
+  const pseat=new THREE.Vector3(SEATS.player.x,0,SEATS.player.z);
+  const toP=pseat.clone().sub(teacherState.pos); toP.y=0;
+  if(toP.length()>CONE_RANGE) return false;
+  return toP.normalize().dot(teacherState.forward)>CONE_HALF;
+}
+function showGazeWarn(on){ document.getElementById('gazewarn').style.display = on?'block':'none'; }
 
 /* =========================== 7. GRADING (isolated / swappable) =========================== */
+function dist2(a,b,c, r,g,bl){ const x=a-r,y=b-g,z=c-bl; return x*x+y*y+z*z; }
+function isInk(r,g,b){ return dist2(r,g,b,PAPER_RGB[0],PAPER_RGB[1],PAPER_RGB[2]) > 50*50; }
+function nearestCrayon(r,g,b){ let best=1e9,bk=null; for(const k of COLOR_KEYS){ const c=COLOR_RGB[k]; const d=dist2(r,g,b,c[0],c[1],c[2]); if(d<best){best=d;bk=k;} } return bk; }
+function bandOf(y){ return y<CH*0.34?'T':(y<CH*0.66?'M':'B'); }
 
-const BAND_ORDER = { base:0, middle:1, top:2 };
-const SIZE_ORDER = { small:0, medium:1, large:2 };
+// sample a canvas into per-band colour fractions
+function sampleCanvas(cvs){
+  const ctx=cvs.getContext('2d'); let img;
+  try{ img=ctx.getImageData(0,0,CW,CH); }catch(e){ return null; }
+  const d=img.data, step=8;
+  const band={T:{tot:0,ink:0,c:{}}, M:{tot:0,ink:0,c:{}}, B:{tot:0,ink:0,c:{}}};
+  let tot=0, ink=0; const all={};
+  for(let y=0;y<CH;y+=step) for(let x=0;x<CW;x+=step){
+    const i=(y*CW+x)*4; const r=d[i],g=d[i+1],b=d[i+2];
+    const bn=bandOf(y); band[bn].tot++; tot++;
+    if(isInk(r,g,b)){ const k=nearestCrayon(r,g,b); band[bn].ink++; ink++;
+      band[bn].c[k]=(band[bn].c[k]||0)+1; all[k]=(all[k]||0)+1; }
+  }
+  return { band, tot, ink, all };
+}
+function bandColorFrac(s,bn,col){ const bd=s.band[bn]; return bd.tot? (bd.c[col]||0)/bd.tot : 0; }
+function anyColorFrac(s,col){ return s.tot? (s.all[col]||0)/s.tot : 0; }
 
-function annotate(pieces){
-  // returns a shallow copy with .band and .sizeClass derived from the build's own bbox
-  let minY=Infinity, maxY=-Infinity;
-  for(const p of pieces){ minY=Math.min(minY,p.local.y); maxY=Math.max(maxY,p.local.y); }
-  const span = Math.max(1e-4, maxY-minY);
-  return pieces.map(p=>{
-    const frac = (maxY-minY<0.08) ? 0.5 : (p.local.y-minY)/span;
-    const band = frac<0.34?'base':(frac>0.66?'top':'middle');
-    return { shape:p.shape, color:p.color, inverted:!!p.inverted, sizeClass:SIZE_CLASS(p.size),
-             band, size:p.size, local:p.local };
-  });
+// public grader — swap body for an AI grader later, keep signature.
+function gradeDrawing(cvs, word){
+  const w=WORDS[word]; const s=sampleCanvas(cvs);
+  if(!s || s.ink/s.tot < 0.02) return { score:0, grade:'F', reasons:['the paper is almost blank'] };
+  const inkFrac=s.ink/s.tot;
+  const partScores=[]; const reasons=[];
+  for(const part of w.r){
+    const [band, cols, need]=part;
+    let inBand=0, anywhere=0;
+    for(const c of cols){ inBand=Math.max(inBand,bandColorFrac(s,band,c)); anywhere=Math.max(anywhere,anyColorFrac(s,c)); }
+    let ps, tag;
+    if(inBand>=need){ ps=1; tag='ok'; }
+    else if(inBand>=need*0.5){ ps=0.55; tag='faint'; }
+    else if(anywhere>=need*0.7){ ps=0.3; tag='misplaced'; }
+    else { ps=0; tag='missing'; }
+    partScores.push(ps);
+    const label = cols.length<=2 ? cols.map(c=>COLOR_NAME[c]).join('/') : 'the right colour';
+    const where = BANDWORD[band];
+    if(tag==='ok') reasons.push({ok:true, t:`${label} ${where}`});
+    else if(tag==='faint') reasons.push({ok:false, t:`not enough ${label} ${where}`});
+    else if(tag==='misplaced') reasons.push({ok:false, t:`${label}, but not ${where}`});
+    else reasons.push({ok:false, t:`no ${label} ${where}`});
+  }
+  // off-recipe colour mess penalty
+  const recipeCols=new Set(); for(const p of w.r) for(const c of p[1]) recipeCols.add(c);
+  let off=0; for(const k in s.all){ if(!recipeCols.has(k)) off+=s.all[k]; }
+  const offFrac = s.ink? off/s.ink : 0;
+  const mess = THREE.MathUtils.clamp(offFrac-0.35,0,0.5)*0.5;
+  let score01 = partScores.reduce((a,b)=>a+b,0)/partScores.length;
+  score01 -= mess;
+  if(inkFrac<0.05) score01 *= 0.6;            // barely drew anything
+  score01 = THREE.MathUtils.clamp(score01,0,1);
+  const score=Math.round(score01*100);
+  const grade = score>=85?'A':score>=70?'B':score>=55?'C':score>=40?'D':'F';
+  if(mess>0.1) reasons.push({ok:false,t:'too many random colours'});
+  // assemble up to 3 plain reasons (prefer a mix)
+  const oks=reasons.filter(r=>r.ok), nos=reasons.filter(r=>!r.ok);
+  const out=[]; if(oks[0]) out.push('✓ '+oks[0].t);
+  for(const n of nos){ if(out.length<3) out.push('✗ '+n.t); }
+  for(const o of oks.slice(1)){ if(out.length<3) out.push('✓ '+o.t); }
+  if(out.length===0) out.push(grade==='A'?'✓ spot on':'✓ close enough');
+  return { score, grade, reasons:out, _dbg:{inkFrac,mess,partScores} };
 }
 
-function partScore(piece, part){
-  const shapeOk = part.shapes.includes(piece.shape)?1:0.2;
-  const colorOk = part.colors.includes(piece.color)?1:0.1;
-  const bd = Math.abs(BAND_ORDER[piece.band]-BAND_ORDER[part.band]);
-  const bandOk = bd===0?1:(bd===1?0.5:0.1);
-  const sd = Math.abs(SIZE_ORDER[piece.sizeClass]-SIZE_ORDER[part.size]);
-  const sizeOk = sd===0?1:(sd===1?0.6:0.3);
-  const orientOk = part.orientation ? (piece.inverted===(part.orientation==='inverted')?1:0.3) : 1;
-  return 0.34*shapeOk + 0.30*colorOk + 0.20*bandOk + 0.10*sizeOk + 0.06*orientOk;
-}
-
-function bboxOf(pieces){
-  const mn=new THREE.Vector3(Infinity,Infinity,Infinity), mx=new THREE.Vector3(-Infinity,-Infinity,-Infinity);
-  for(const p of pieces){ mn.min(p.local); mx.max(p.local); }
-  return {mn,mx};
-}
-
-function scoreVariant(pieces, variant, word){
-  const used = new Array(pieces.length).fill(false);
-  let required=0, matchedSum=0, optBonus=0;
-  const partInfo = []; // {part, best, pieceColor, pieceShape, filled}
-
-  // required slots first
-  for(const part of variant){
-    const req = part.count[0];
-    let partBest=0, pc=null, ps=null, filledReq=0;
-    for(let s=0;s<req;s++){
-      let bi=-1, bsc=0;
-      for(let i=0;i<pieces.length;i++){ if(used[i]) continue; const sc=partScore(pieces[i],part); if(sc>bsc){bsc=sc;bi=i;} }
-      required++;
-      if(bi>=0 && bsc>0.18){ used[bi]=true; matchedSum+=bsc; filledReq++; if(bsc>partBest){partBest=bsc;pc=pieces[bi].color;ps=pieces[bi].shape;} }
+// downsample to a grid of dominant colours for copycat comparison
+function gridOf(cvs){
+  const ctx=cvs.getContext('2d'); let img; try{ img=ctx.getImageData(0,0,CW,CH); }catch(e){ return null; }
+  const d=img.data, N=16, cell=Math.floor(CW/N), grid=[];
+  for(let gy=0;gy<N;gy++) for(let gx=0;gx<N;gx++){
+    const cnt={}; let ink=0;
+    for(let y=0;y<cell;y+=3) for(let x=0;x<cell;x+=3){
+      const px=gx*cell+x, py=gy*cell+y; const i=(py*CW+px)*4; const r=d[i],g=d[i+1],b=d[i+2];
+      if(isInk(r,g,b)){ const k=nearestCrayon(r,g,b); cnt[k]=(cnt[k]||0)+1; ink++; }
     }
-    partInfo.push({part, best:partBest, pieceColor:pc, pieceShape:ps, filledReq, req});
+    let dom='_'; if(ink>2){ let bv=0; for(const k in cnt) if(cnt[k]>bv){bv=cnt[k];dom=k;} }
+    grid.push(dom);
   }
-  // optional slots (bonus only)
-  for(const part of variant){
-    const opt = part.count[1]-part.count[0];
-    for(let s=0;s<opt;s++){
-      let bi=-1, bsc=0;
-      for(let i=0;i<pieces.length;i++){ if(used[i]) continue; const sc=partScore(pieces[i],part); if(sc>bsc){bsc=sc;bi=i;} }
-      if(bi>=0 && bsc>0.55){ used[bi]=true; optBonus += bsc*0.06; }
-    }
-  }
-  const extras = used.filter(u=>!u).length;
-  const extraPen = extras*0.09;
-  // ratio
-  let ratioPen=0, ratioBad='';
-  if(word.ratio && pieces.length>0){
-    const {mn,mx}=bboxOf(pieces);
-    const avgS = pieces.reduce((a,p)=>a+p.size,0)/pieces.length;
-    const h = (mx.y-mn.y)+avgS;
-    const wdt = ((mx.x-mn.x)+(mx.z-mn.z))/2 + avgS;
-    const r = h/Math.max(1e-3,wdt);
-    if(r < word.ratio[0]){ ratioPen=0.12; ratioBad='too wide / flat'; }
-    else if(r > word.ratio[1]){ ratioPen=0.12; ratioBad='too tall / thin'; }
-  }
-  const reqAvg = required>0 ? matchedSum/required : 0;
-  const score01 = Math.max(0, Math.min(1, reqAvg - extraPen - ratioPen + Math.min(0.1,optBonus)));
-  return { score01, partInfo, extras, ratioBad };
+  return grid;
+}
+function similarity(ca,cb){
+  const ga=gridOf(ca), gb=gridOf(cb); if(!ga||!gb) return 0;
+  let compared=0, match=0;
+  for(let i=0;i<ga.length;i++){ if(ga[i]==='_'&&gb[i]==='_') continue; compared++; if(ga[i]===gb[i]) match++; }
+  return compared? match/compared : 0;
 }
 
-function gradeFromScore(s){ return s>=85?'A':s>=70?'B':s>=55?'C':s>=40?'D':'F'; }
+/* =========================== 8. SUSPICION + AUDIO =========================== */
+let AC=null;
+function audio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } return AC; }
+function tone(freq,dur,type='square',vol=0.1){ const a=audio(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+dur);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+dur); }
+const sfxBeep=(f=440,d=0.08)=>tone(f,d,'square',0.07);
+const sfxStroke=()=>tone(160+Math.random()*40,0.03,'sine',0.03);
+const sfxUndo=()=>tone(150,0.08,'sawtooth',0.07);
+const sfxCaught=()=>{ tone(200,0.12,'sawtooth',0.14); setTimeout(()=>tone(110,0.2,'sawtooth',0.14),90); };
+const sfxGlanceCue=()=>{ tone(680,0.06,'square',0.09); setTimeout(()=>tone(920,0.07,'square',0.09),70); };
+const sfxGaze=()=>{ tone(500,0.08,'triangle',0.1); setTimeout(()=>tone(760,0.1,'triangle',0.1),80); };
+const sfxFootstep=(v=.5)=>tone(85,0.05,'sine',0.13*v);
+const sfxTrans=()=>tone(1200,0.03,'square',0.04);
+const sfxGrade=(good)=>good?tone(540,0.09,'square',0.1):tone(170,0.14,'sawtooth',0.1);
+const sfxScribble=()=>tone(90+Math.random()*60,0.04,'sawtooth',0.08);
 
-// public API — swap this body for an AI grader later, keep the signature.
-function gradeBuild(build, word){
-  const pieces = annotate(build);
-  const w = WORDS[word];
-  if(!w || pieces.length===0){
-    return { score:0, grade:'F', reasons:['✗ nothing on the desk'] };
-  }
-  let best=null;
-  for(let vi=0; vi<w.variants.length; vi++){
-    const r = scoreVariant(pieces, w.variants[vi], w);
-    if(!best || r.score01>best.score01){ best=r; best.vi=vi; }
-  }
-  const score = Math.round(best.score01*100);
-  const grade = gradeFromScore(score);
-
-  // build plain-language reasons (prefer a mix of ✓ / ✗, cap at 3)
-  const oks=[], nos=[];
-  const seen = new Set();
-  for(const pi of best.partInfo){
-    const part = pi.part;
-    const key = part.band+'|'+part.colors[0];
-    if(seen.has(key)) continue; seen.add(key);
-    const colWord = part.colors.length<=2 ? part.colors.map(c=>COLOR_ADJ[c]).join('/') : 'the right colour';
-    const band = BAND_PHRASE[part.band];
-    if(pi.req>0 && pi.best>0.58 && pi.filledReq>=pi.req){
-      oks.push(`✓ ${colWord} ${band}`);
-    } else if(pi.req>0){
-      if(pi.filledReq===0) nos.push(`✗ nothing ${colWord} ${band}`);
-      else nos.push(`✗ wrong shape/colour ${band}`);
-    }
-  }
-  if(best.extras>=2) nos.push(`✗ too many extra bits`);
-  if(best.ratioBad) nos.push(`✗ looks ${best.ratioBad}`);
-  let reasons = [];
-  if(oks.length) reasons.push(oks[0]);
-  for(const n of nos){ if(reasons.length<3) reasons.push(n); }
-  for(const o of oks.slice(1)){ if(reasons.length<3) reasons.push(o); }
-  if(reasons.length===0) reasons.push(grade==='A'?'✓ exactly right':'✓ close enough');
-
-  return { score, grade, reasons, _debug:best };
+function addSuspicion(amount,reason){
+  if(!G || G.tutorial) return;
+  G.suspicion=THREE.MathUtils.clamp(G.suspicion+amount,0,100);
+  G.suspLog.push({t:Math.round(G.clock),amount,reason,total:G.suspicion});
+  updateSuspUI(); popSusp(amount,reason);
+  if(G.suspicion>=100) lose('suspicion');
 }
-
-// --- copycat similarity ---
-function normPositions(pieces){
-  if(pieces.length===0) return [];
-  const {mn,mx}=bboxOf(pieces.map(p=>({local:p.local})));
-  const sx=Math.max(0.2,mx.x-mn.x), sy=Math.max(0.2,mx.y-mn.y), sz=Math.max(0.2,mx.z-mn.z);
-  return pieces.map(p=>({ shape:p.shape, color:p.color,
-    n:new THREE.Vector3((p.local.x-mn.x)/sx,(p.local.y-mn.y)/sy,(p.local.z-mn.z)/sz) }));
+function updateSuspUI(){
+  const v=G?G.suspicion:0;
+  document.getElementById('suspBar').style.width=v+'%';
+  document.getElementById('suspVal').textContent=Math.round(v);
+  document.getElementById('suspVal2').textContent=Math.round(v);
 }
-function similarity(a,b){
-  if(a.length===0||b.length===0) return 0;
-  const na=normPositions(a), nb=normPositions(b);
-  const used=new Array(nb.length).fill(false);
-  let matched=0;
-  for(const pa of na){
-    let bi=-1, bd=1e9;
-    for(let i=0;i<nb.length;i++){ if(used[i]) continue; if(nb[i].shape!==pa.shape||nb[i].color!==pa.color) continue;
-      const d=pa.n.distanceTo(nb[i].n); if(d<bd){bd=d;bi=i;} }
-    if(bi>=0 && bd<0.3){ used[bi]=true; matched++; }
-  }
-  return 2*matched/(a.length+b.length);
-}
-
-/* =========================== 8. SUSPICION =========================== */
-
-function addSuspicion(amount, reason){
-  if(!G) return;
-  if(G.tutorial){ return; } // tutorial is a safe space — no suspicion
-  G.suspicion = THREE.MathUtils.clamp(G.suspicion + amount, 0, 100);
-  G.suspLog.push({ t:Math.round(G.clock), amount, reason, total:G.suspicion });
-  updateSuspicionUI();
-  popSuspicion(amount, reason);
-  if(G.suspicion>=100){ lose('suspicion'); }
-}
-
-function updateSuspicionUI(){
-  const fill = document.getElementById('suspBarFill');
-  const num = document.getElementById('suspNum');
-  const ant = document.getElementById('antenna');
-  const v = G ? G.suspicion : 0;
-  fill.style.width = v + '%';
-  num.textContent = Math.round(v);
-  const glow = v/100;
-  ant.style.textShadow = `0 0 ${2+glow*14}px rgba(228,71,59,${0.3+glow*0.7})`;
-  ant.style.transform = `scale(${1+glow*0.25})`;
-}
-
-function popSuspicion(amount, reason){
+function popSusp(amount,reason){
   if(amount===0) return;
-  const box = document.getElementById('popups');
-  const el = document.createElement('div');
-  el.className = 'popup ' + (amount>0?'up':'down');
-  el.textContent = (amount>0?'+':'') + amount + ' ' + reason;
-  box.appendChild(el);
-  setTimeout(()=>el.remove(), 2300);
+  const el=document.createElement('div'); el.className='pop '+(amount>0?'up':'down');
+  el.textContent=(amount>0?'+':'')+amount+' '+reason;
+  document.getElementById('popups').appendChild(el); setTimeout(()=>el.remove(),2300);
 }
 
-/* =========================== 9. ONBOARDING / TUTORIAL =========================== */
-
-// --- intro comic panels (dithered canvas art) ---
-const INTRO = [
-  { cap:'A UFO lands behind the school.', draw:drawPanelUFO },
-  { cap:'The alien squeezes into a kid suit.', draw:drawPanelSuit },
-  { cap:'"Your translator will help. Probably."', draw:drawPanelTranslator },
-  { cap:'"Blend in. Don\'t get caught."', draw:drawPanelBlend },
+/* =========================== 9. ONBOARDING =========================== */
+const INTRO=[
+  {cap:'A UFO lands behind the school.', draw:pUFO},
+  {cap:'The alien squeezes into a kid suit.', draw:pSuit},
+  {cap:'"Your translator will help. Probably."', draw:pTrans},
+  {cap:'"Blend in. Draw. Don\'t get caught."', draw:pBlend},
 ];
-function ditherFillRect(ctx,x,y,w,h,c1,c2){
-  for(let j=0;j<h;j++) for(let i=0;i<w;i++){
-    ctx.fillStyle = ((i+j)&1)? c1 : c2;
-    ctx.fillRect(x+i,y+j,1,1);
-  }
-}
-function drawPanelUFO(ctx){
-  ctx.fillStyle='#1a2436'; ctx.fillRect(0,0,96,72);
-  ditherFillRect(ctx,0,0,96,30,'#243a56','#1a2436'); // sky
-  ctx.fillStyle='#2f7a3a'; ctx.fillRect(0,54,96,18); // ground
-  ctx.fillStyle='#8a8a9a'; ctx.fillRect(10,34,30,22); ctx.fillStyle='#12121c'; ctx.fillRect(16,40,6,8); ctx.fillRect(28,40,6,8); // school
-  // ufo
-  ctx.fillStyle='#c8cdd6'; ctx.fillRect(58,20,26,6); ctx.fillStyle='#9b55c7'; ctx.fillRect(64,14,14,8);
-  ctx.fillStyle='#f4d24a'; ctx.fillRect(60,26,2,2); ctx.fillRect(66,26,2,2); ctx.fillRect(72,26,2,2); ctx.fillRect(78,26,2,2);
-  ditherFillRect(ctx,62,26,18,26,'rgba(79,174,84,0.9)','rgba(26,36,54,0)');
-}
-function drawPanelSuit(ctx){
-  ctx.fillStyle='#20262f'; ctx.fillRect(0,0,96,72);
-  // kid suit outline
-  ctx.fillStyle='#3f7ad6'; ctx.fillRect(38,34,20,28);
-  ctx.fillStyle='#f0c9a0'; ctx.fillRect(40,18,16,16);
-  // alien bits poking out (green)
-  ctx.fillStyle='#4fae54'; ctx.fillRect(34,20,6,4); ctx.fillRect(56,20,6,4); // arms
-  ctx.fillStyle='#4fae54'; ctx.fillRect(46,10,2,8); ctx.fillRect(50,10,2,8); // antennae
-  ctx.fillStyle='#12121c'; ctx.fillRect(43,24,3,3); ctx.fillRect(50,24,3,3);
-  // motion marks
-  ctx.fillStyle='#f4d24a'; ctx.fillRect(28,30,4,1); ctx.fillRect(64,30,4,1);
-}
-function drawPanelTranslator(ctx){
-  ctx.fillStyle='#20262f'; ctx.fillRect(0,0,96,72);
-  ctx.fillStyle='#4fae54'; ctx.fillRect(30,40,10,18); ctx.fillRect(56,40,10,18); // alien hands
-  ctx.fillStyle='#20160c'; ctx.fillRect(34,30,28,22); // device
-  ditherFillRect(ctx,37,33,22,12,'#153b1f','#1e5a2e'); // crt
-  ctx.fillStyle='#8dffb0'; ctx.fillRect(39,36,14,1); ctx.fillRect(39,39,10,1); ctx.fillRect(39,42,16,1);
-}
-function drawPanelBlend(ctx){
-  ctx.fillStyle='#c8cdd6'; ctx.fillRect(0,0,96,72);
-  ctx.fillStyle='#2f7a3a'; ctx.fillRect(6,8,40,20); // board
-  const cols=['#3f7ad6','#9b55c7','#4fae54'];
-  for(let i=0;i<3;i++){ ctx.fillStyle=cols[i]; ctx.fillRect(14+i*24,40,12,18); ctx.fillStyle='#f0c9a0'; ctx.fillRect(16+i*24,30,8,10); }
-  // one green alien kid in the middle
-  ctx.fillStyle='#4fae54'; ctx.fillRect(40,30,8,10); ctx.fillStyle='#f4d24a'; ctx.fillRect(42,24,1,6); ctx.fillRect(45,24,1,6);
-}
-function buildIntroPanels(){
-  const wrap = document.getElementById('introPanels');
-  wrap.innerHTML='';
-  INTRO.forEach((p,i)=>{
-    const d = document.createElement('div'); d.className='comic'; d.id='comic'+i;
-    const c = document.createElement('canvas'); c.width=96; c.height=72;
-    const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled=false; p.draw(ctx);
-    const cap = document.createElement('div'); cap.className='cap'; cap.textContent=p.cap;
-    d.appendChild(c); d.appendChild(cap); wrap.appendChild(d);
-  });
-}
+function dRect(ctx,x,y,w,h,c1,c2){ for(let j=0;j<h;j++)for(let i=0;i<w;i++){ ctx.fillStyle=((i+j)&1)?c1:c2; ctx.fillRect(x+i,y+j,1,1); } }
+function pUFO(c){ c.fillStyle='#1a2436'; c.fillRect(0,0,96,72); dRect(c,0,0,96,30,'#243a56','#1a2436');
+  c.fillStyle='#2f7a3a'; c.fillRect(0,54,96,18); c.fillStyle='#8f96a8'; c.fillRect(10,34,30,22);
+  c.fillStyle='#101820'; c.fillRect(16,40,6,8); c.fillRect(28,40,6,8);
+  c.fillStyle='#c2c8d4'; c.fillRect(58,20,26,6); c.fillStyle='#9b55c7'; c.fillRect(64,14,14,8);
+  dRect(c,62,26,18,26,'rgba(70,178,78,0.9)','rgba(26,36,54,0)'); }
+function pSuit(c){ c.fillStyle='#20262f'; c.fillRect(0,0,96,72); c.fillStyle='#3f7ad6'; c.fillRect(38,34,20,28);
+  c.fillStyle='#f0c9a0'; c.fillRect(40,18,16,16); c.fillStyle='#46b24e'; c.fillRect(34,20,6,4); c.fillRect(56,20,6,4);
+  c.fillRect(46,10,2,8); c.fillRect(50,10,2,8); c.fillStyle='#101820'; c.fillRect(43,24,3,3); c.fillRect(50,24,3,3); }
+function pTrans(c){ c.fillStyle='#20262f'; c.fillRect(0,0,96,72); c.fillStyle='#46b24e'; c.fillRect(30,40,10,18); c.fillRect(56,40,10,18);
+  c.fillStyle='#17110a'; c.fillRect(34,30,28,22); dRect(c,37,33,22,12,'#123524','#1e5a2e');
+  c.fillStyle='#9affc0'; c.fillRect(39,36,14,1); c.fillRect(39,39,10,1); c.fillRect(39,42,16,1); }
+function pBlend(c){ c.fillStyle='#eef1f5'; c.fillRect(0,0,96,72); c.fillStyle='#2f7a3a'; c.fillRect(6,8,40,20);
+  const cols=['#3f7ad6','#9b55c7','#46b24e']; for(let i=0;i<3;i++){ c.fillStyle=cols[i]; c.fillRect(14+i*24,40,12,18); c.fillStyle='#f0c9a0'; c.fillRect(16+i*24,30,8,10); }
+  c.fillStyle='#46b24e'; c.fillRect(40,30,8,10); c.fillStyle='#f5d13e'; c.fillRect(42,24,1,6); c.fillRect(45,24,1,6); }
+function buildIntro(){ const wrap=document.getElementById('introPanels'); wrap.innerHTML='';
+  INTRO.forEach((p,i)=>{ const d=document.createElement('div'); d.className='comic'; d.id='comic'+i;
+    const cv=document.createElement('canvas'); cv.width=96; cv.height=72; const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=false; p.draw(ctx);
+    const cap=document.createElement('div'); cap.className='cap'; cap.textContent=p.cap; d.appendChild(cv); d.appendChild(cap); wrap.appendChild(d); }); }
 let introTimer=null, introIdx=0;
-function playIntro(onDone){
-  show('intro'); buildIntroPanels(); introIdx=0;
-  const step=()=>{
-    document.querySelectorAll('.comic').forEach((c,i)=>c.classList.toggle('active', i===introIdx));
-    sfxBeep(300+introIdx*80, 0.08);
-    introIdx++;
-    if(introIdx>INTRO.length){ clearInterval(introTimer); hide('intro'); onDone&&onDone(); }
-  };
-  step();
-  introTimer = setInterval(step, 3800);
-  G._introDone = onDone;
-}
+function playIntro(onDone){ show('intro'); buildIntro(); introIdx=0; G._introDone=onDone;
+  const step=()=>{ document.querySelectorAll('.comic').forEach((c,i)=>c.classList.toggle('active',i===introIdx)); sfxBeep(300+introIdx*80,0.08); introIdx++;
+    if(introIdx>INTRO.length){ clearInterval(introTimer); introTimer=null; hide('intro'); const d=G._introDone; G._introDone=null; d&&d(); } };
+  step(); introTimer=setInterval(step,3600); }
 function skipIntro(){ if(introTimer){ clearInterval(introTimer); introTimer=null; } hide('intro'); const d=G._introDone; G._introDone=null; d&&d(); }
 
-// --- step-by-step tutorial ---
-const Tutorial = {
+const Tutorial={
   steps:[], idx:0, active:false,
-  start(){
-    this.active=true; this.idx=0;
-    this.steps = [
-      { text:"See the speech bubble up there? That's English. You don't understand a word of it yet.",
-        mode:'continue', anchor:'#speech', onEnter:()=>{ showSpeech(G.word); } },
-      { text:"Your translator (bottom-left) can't translate the word — it can only DESCRIBE it. This is your only clue. Read it.",
-        mode:'continue', anchor:'#translator' },
-      { text:"Now build it! Pick a shape (keys 1-5) and a colour, then click your desk to place a piece. Try placing two.",
-        mode:'await', wait:'(place 2 pieces…)', anchor:'#toolbar', cond:()=>G.entities.player.pieces.length>=2 },
-      { text:"Not sure? Hold A or D to peek at a neighbour's desk. Try it now.",
-        mode:'await', wait:'(hold A or D…)', anchor:'center', cond:()=>G.hasPeeked },
-      { text:"Watch their head — it's turning toward you! If a kid looks while you're peeking, you're caught. Release A/D before the turn finishes.",
-        mode:'await', wait:'(wait for the glance to pass…)', anchor:'center',
-        onEnter:()=>{ G.scriptedGlanceDone=false; forceGlance('Timmy'); G.scriptGlance=true; },
-        cond:()=>G.scriptedGlanceDone },
-      { text:"That's Ms. Huxley — she patrols the room. When she's close behind you, the screen edge glows red. Don't let her see you lean.",
-        mode:'continue', anchor:'center', onEnter:()=>{ teacherState.patrolling=true; } },
-      { text:"At Show & Tell every build gets a letter grade + sticker. Bad grades, getting caught, and copying a neighbour too closely raise SUSPICION (top-right). At 100 — you're done. Ready?",
-        mode:'continue', anchor:'#suspWrap', btn:'Start the day →' },
+  start(){ this.active=true; this.idx=0;
+    this.steps=[
+      { text:"You can't read the word on the board. Your translator only DESCRIBES it — read it down there.", mode:'go', anchor:'#translator', onEnter:()=>showSpeech(G.word) },
+      { text:"Pick a crayon on the left and draw on your paper. Try a few strokes.", mode:'wait', wait:'(draw something...)', anchor:'#crayons', cond:()=>G.drewSomething },
+      { text:"Not sure? Hold A or D to peek at a neighbour's paper. Try it.", mode:'wait', wait:'(hold A or D...)', anchor:'center', cond:()=>G.hasPeeked },
+      { text:"Their head is turning toward you! Let go of A/D before it finishes, or you'd get caught.", mode:'wait', wait:'(wait for the glance to pass...)', anchor:'center', onEnter:()=>{ G.scriptGlanceDone=false; forceGlance('Timmy'); G.scriptGlance=true; }, cond:()=>G.scriptGlanceDone },
+      { text:"That's Ms. Huxley. Watch her yellow vision cone — if it turns RED over you while peeking, you're busted.", mode:'go', anchor:'center', onEnter:()=>{ teacherState.patrolling=true; } },
+      { text:"At Show & Tell every drawing gets a grade. Bad grades and getting caught raise SUSPICION (top-right). Hit 100 and it's over. Ready?", mode:'go', btn:'Start the day', anchor:'#susp' },
     ];
     this.render();
   },
-  render(){
-    const step = this.steps[this.idx];
-    if(!step){ this.finish(); return; }
-    step.onEnter && step.onEnter();
-    const tip=document.getElementById('tip');
-    document.getElementById('tipText').textContent = step.text;
-    const btn=document.getElementById('tipBtn');
-    const wait=document.getElementById('tipWait');
-    if(step.mode==='continue'){ btn.style.display='inline-block'; btn.textContent = step.btn||'Got it →'; wait.textContent=''; }
-    else { btn.style.display='none'; wait.textContent = step.wait||''; }
-    tip.style.display='block';
-    positionTip(step.anchor);
-  },
+  render(){ const s=this.steps[this.idx]; if(!s){ this.finish(); return; } s.onEnter&&s.onEnter();
+    document.getElementById('tip').style.display='block';
+    document.getElementById('tipText').textContent=s.text;
+    const btn=document.getElementById('tipBtn'), wt=document.getElementById('tipWait');
+    if(s.mode==='go'){ btn.style.display='inline-block'; btn.textContent=s.btn||'Got it'; wt.textContent=''; }
+    else { btn.style.display='none'; wt.textContent=s.wait||''; }
+    positionTip(s.anchor); },
   advance(){ this.idx++; this.render(); },
-  notify(ev){
-    if(!this.active) return;
-    const step=this.steps[this.idx];
-    if(step && step.mode==='await' && step.cond && step.cond()) this.advance();
-  },
-  update(){
-    if(!this.active) return;
-    const step=this.steps[this.idx];
-    if(step && step.mode==='await' && step.cond && step.cond()) this.advance();
-    // keep tip anchored
-    if(step) positionTip(step.anchor);
-  },
-  finish(){
-    this.active=false;
-    document.getElementById('tip').style.display='none';
-    try{ localStorage.setItem('fdoe_seenTut','1'); }catch(e){}
-    G.seenTutorial=true;
-    endBuildPhase(); // proceed to tutorial show & tell
-  },
+  notify(){ const s=this.steps[this.idx]; if(s&&s.mode==='wait'&&s.cond&&s.cond()) this.advance(); },
+  update(){ if(!this.active) return; const s=this.steps[this.idx]; if(s&&s.mode==='wait'&&s.cond&&s.cond()) this.advance(); if(s) positionTip(s.anchor); },
+  finish(){ this.active=false; document.getElementById('tip').style.display='none';
+    try{ localStorage.setItem('fdoe_seenTut','1'); }catch(e){} G.seenTutorial=true; endDrawPhase(); },
 };
 function positionTip(anchor){
-  const tip=document.getElementById('tip');
-  const r = tip.getBoundingClientRect();
-  let left, top;
-  if(anchor && anchor!=='center'){
-    const el=document.querySelector(anchor);
-    if(el){ const b=el.getBoundingClientRect();
-      left = b.left + b.width/2 - r.width/2;
-      top = (b.top > window.innerHeight*0.5) ? b.top - r.height - 14 : b.bottom + 14;
-    }
-  }
-  if(left==null){ left = window.innerWidth/2 - r.width/2; top = window.innerHeight*0.30; }
-  left = THREE.MathUtils.clamp(left, 8, window.innerWidth - r.width - 8);
-  top  = THREE.MathUtils.clamp(top, 8, window.innerHeight - r.height - 8);
-  tip.style.left = left+'px'; tip.style.top = top+'px';
+  const tip=document.getElementById('tip'); const r=tip.getBoundingClientRect(); let left,top;
+  if(anchor && anchor!=='center'){ const el=document.querySelector(anchor); if(el){ const b=el.getBoundingClientRect();
+    left=b.left+b.width/2-r.width/2; top=(b.top>window.innerHeight*0.5)?b.top-r.height-14:b.bottom+14; } }
+  if(left==null){ left=window.innerWidth/2-r.width/2; top=window.innerHeight*0.3; }
+  tip.style.left=THREE.MathUtils.clamp(left,8,window.innerWidth-r.width-8)+'px';
+  tip.style.top=THREE.MathUtils.clamp(top,8,window.innerHeight-r.height-8)+'px';
 }
 
 /* =========================== 10. UI =========================== */
+const $=s=>document.querySelector(s);
+function show(id){ const e=document.getElementById(id); if(e) e.classList.add('show'); }
+function hide(id){ const e=document.getElementById(id); if(e) e.classList.remove('show'); }
 
-const $ = s => document.querySelector(s);
-function show(id){ const el=document.getElementById(id); if(el) el.classList.add('show'); }
-function hide(id){ const el=document.getElementById(id); if(el) el.classList.remove('show'); }
+function buildCrayons(){
+  const c=document.getElementById('crayons'); c.innerHTML='';
+  COLOR_KEYS.forEach(k=>{ const b=document.createElement('div'); b.className='cr'; b.dataset.color=k;
+    b.style.background=COLOR_CSS[k]; if(k==='white') b.style.borderColor='#000'; b.title=k; b.onclick=()=>{ setColor(k); }; c.appendChild(b); });
+  const t=document.getElementById('tools'); t.innerHTML='';
+  const mk=(label,sub,fn,id)=>{ const d=document.createElement('div'); d.className='tool'; d.id=id||''; d.innerHTML=label+(sub?`<small>${sub}</small>`:''); d.onclick=fn; return d; };
+  t.appendChild(mk('S','thin',()=>setBrush('small'),'toolS'));
+  t.appendChild(mk('M','med',()=>setBrush('med'),'toolM'));
+  t.appendChild(mk('L','thick',()=>setBrush('large'),'toolL'));
+  t.appendChild(mk('ERASE','',()=>setErase(),'toolE'));
+  t.appendChild(mk('UNDO','Z',()=>undoDraw()));
+  t.appendChild(mk('CLEAR','',()=>clearDraw()));
+  refreshTools();
+}
+function refreshTools(){
+  document.querySelectorAll('.cr').forEach(b=>b.classList.toggle('sel', b.dataset.color===tool.color && !tool.erase));
+  const map={small:'toolS',med:'toolM',large:'toolL'};
+  document.querySelectorAll('.tool').forEach(b=>b.classList.remove('sel'));
+  if(tool.erase){ const e=document.getElementById('toolE'); e&&e.classList.add('sel'); }
+  else { const id=map[tool.brush||'med']; const el=document.getElementById(id); el&&el.classList.add('sel'); }
+}
+function setDrawUIVisible(v){ document.getElementById('crayons').style.display=v?'flex':'none'; document.getElementById('tools').style.display=v?'flex':'none'; }
 
-// --- audio (WebAudio, procedural) ---
-let AC=null;
-function audio(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } } return AC; }
-function tone(freq, dur, type='square', vol=0.12){
-  const a=audio(); if(!a) return;
-  const o=a.createOscillator(), g=a.createGain();
-  o.type=type; o.frequency.value=freq;
-  g.gain.setValueAtTime(vol, a.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime+dur);
-  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+dur);
-}
-const sfxBeep=(f=440,d=0.08)=>tone(f,d,'square',0.08);
-const sfxPlace=()=>{ tone(220,0.05,'square',0.1); setTimeout(()=>tone(330,0.06,'square',0.08),40); };
-const sfxUndo=()=>tone(160,0.09,'sawtooth',0.08);
-const sfxCaught=()=>{ tone(200,0.12,'sawtooth',0.14); setTimeout(()=>tone(120,0.2,'sawtooth',0.14),90); };
-const sfxGlanceCue=()=>tone(880,0.06,'square',0.09);
-const sfxFootstep=(v=0.5)=>tone(90,0.05,'sine',0.14*v);
-const sfxTransBeep=()=>tone(1200,0.03,'square',0.05);
-const sfxGrade=(good)=>{ good?tone(523,0.08,'square',0.1):tone(180,0.14,'sawtooth',0.1); };
-
-// --- build toolbar ---
-const SHAPE_ICON = { cube:'◻', sphere:'●', cylinder:'▮', cone:'▲', wedge:'◣' };
-function buildToolbar(){
-  const sc = document.getElementById('shapes'); sc.innerHTML='';
-  SHAPES.forEach((s,i)=>{
-    const b=document.createElement('div'); b.className='shapeBtn'; b.dataset.shape=s;
-    b.innerHTML = `<div style="font-size:14px;">${SHAPE_ICON[s]}</div><div class="n">${i+1}</div>`;
-    b.onclick=()=>setShape(s);
-    sc.appendChild(b);
-  });
-  const sw = document.getElementById('swatches'); sw.innerHTML='';
-  COLOR_KEYS.forEach(c=>{
-    const el=document.createElement('div'); el.className='sw'; el.dataset.color=c;
-    el.style.background='#'+COLORS[c].toString(16).padStart(6,'0');
-    el.title=c; el.onclick=()=>setColor(c);
-    sw.appendChild(el);
-  });
-  updateToolbarUI(); updateSizeReadout();
-}
-function updateToolbarUI(){
-  document.querySelectorAll('.shapeBtn').forEach(b=>b.classList.toggle('sel', b.dataset.shape===tool.shape));
-  document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('sel', b.dataset.color===tool.color));
-}
-function updateSizeReadout(){
-  const names={small:'SML',medium:'MED',large:'LRG'};
-  document.getElementById('sizeReadout').textContent = 'Size: '+names[SIZE_CLASS(tool.size)]+'  [ ] / scroll';
-}
-function setToolbarVisible(v){ document.getElementById('toolbar').style.display = v?'flex':'none'; }
-
-// --- goal strip ---
 function fmtTime(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
-function updateGoalStrip(){
+function updateGoal(){
   if(!G) return;
-  $('#gsPeriod').textContent = 'Period: ' + G.period.name;
-  $('#gsTask').textContent = G.tutorial ? 'Learn the ropes' : 'Build what the humans said';
-  const t=$('#gsTimer');
-  if(G.period.timer>0 && G.phase==='build'){ t.textContent = fmtTime(G.timeLeft); t.classList.toggle('low', G.timeLeft<10); }
-  else { t.textContent = G.tutorial? 'No timer' : '—'; t.classList.remove('low'); }
-  $('#gsPieces').textContent = 'Pieces '+G.entities.player.pieces.length+'/'+MAX_PIECES;
+  $('#goalName').textContent=G.period.name;
+  const t=$('#goalTimer');
+  if(G.period.timer>0 && G.phase==='draw' && !G.tutorial){ t.textContent=fmtTime(G.timeLeft); t.classList.toggle('low',G.timeLeft<10); }
+  else { t.textContent=G.tutorial?'practice':'--'; t.classList.remove('low'); }
 }
 
-// --- translator ---
-const GLYPHS = '▓▒░╬◈⋔Ѯᔕ⌁∰▚';
-function glitchString(word){
-  return word.split('').map(ch=> ch===' ' ? '  ' : GLYPHS[(Math.random()*GLYPHS.length)|0]).join('');
-}
-let transTypeToken=0, transGlitchTimer=null;
-function setTranslator(word, entry){
-  G.word = word; G.transEntry = entry;
-  startHumansGlitch(word);
-  typeEntry(entry);
-}
-function startHumansGlitch(word){
-  const el=document.getElementById('humansWord');
-  el.classList.add('flick');
-  if(transGlitchTimer) clearInterval(transGlitchTimer);
-  transGlitchTimer = setInterval(()=>{ el.textContent = glitchString(word); }, 140);
-  el.textContent = glitchString(word);
-}
-function typeEntry(text){
-  const el=document.getElementById('transEntry');
-  const token = ++transTypeToken;
-  let i=0;
-  el.innerHTML='<span id="transCaret">&nbsp;</span>';
-  const caret='<span id="transCaret">&nbsp;</span>';
-  const tick=()=>{
-    if(token!==transTypeToken) return;
-    i++;
-    el.innerHTML = text.slice(0,i).replace(/</g,'&lt;') + caret;
-    if(i%2===0) sfxTransBeep();
-    if(i<text.length) setTimeout(tick, 26);
-  };
-  setTimeout(tick, 120);
-}
-function replayTranslator(){ if(G && G.transEntry){ sfxTransBeep(); typeEntry(G.transEntry); } }
-function unscrambleHumans(word){
-  if(transGlitchTimer){ clearInterval(transGlitchTimer); transGlitchTimer=null; }
-  const el=document.getElementById('humansWord'); el.classList.remove('flick');
-  const target = word.toUpperCase();
-  let frame=0; const total=Math.max(14, target.length*2);
-  const anim=()=>{
-    frame++;
-    const revealed = Math.floor((frame/total)*target.length);
-    let out='';
-    for(let k=0;k<target.length;k++){
-      if(target[k]===' ') out+='  ';
-      else if(k<revealed) out+=target[k];
-      else out+=GLYPHS[(Math.random()*GLYPHS.length)|0];
-    }
-    el.textContent=out;
-    if(frame%3===0) sfxTransBeep();
-    if(frame<total) requestAnimationFrame(anim);
-    else el.textContent=target;
-  };
-  anim();
-}
+// translator
+const GLYPHS='▓▒░#@%&*=+';
+function glitchStr(word){ return word.split('').map(ch=>ch===' '?'  ':GLYPHS[(Math.random()*GLYPHS.length)|0]).join(''); }
+let wordGlitchT=null, typeTok=0;
+function setTranslator(word,desc){ G.word=word; G.desc=desc; startWordGlitch(word); typeDesc(desc); }
+function startWordGlitch(word){ const el=document.getElementById('trWord'); el.classList.add('flick');
+  if(wordGlitchT) clearInterval(wordGlitchT); wordGlitchT=setInterval(()=>{ el.textContent=glitchStr(word); },140); el.textContent=glitchStr(word); }
+function typeDesc(text){ const el=document.getElementById('trDesc'); const tok=++typeTok; let i=0;
+  const caret='<span id="trCaret">&nbsp;</span>'; el.innerHTML=caret;
+  const tick=()=>{ if(tok!==typeTok) return; i++; el.innerHTML=text.slice(0,i).replace(/</g,'&lt;')+caret; if(i%2===0) sfxTrans(); if(i<text.length) setTimeout(tick,24); };
+  setTimeout(tick,120); }
+function replayTranslator(){ if(G&&G.desc){ sfxTrans(); typeDesc(G.desc); } }
+function unscrambleWord(word){ if(wordGlitchT){ clearInterval(wordGlitchT); wordGlitchT=null; }
+  const el=document.getElementById('trWord'); el.classList.remove('flick'); const tgt=word.toUpperCase(); let f=0; const total=Math.max(14,tgt.length*2);
+  const anim=()=>{ f++; const rev=Math.floor((f/total)*tgt.length); let out='';
+    for(let k=0;k<tgt.length;k++){ out += tgt[k]===' '?'  ':(k<rev?tgt[k]:GLYPHS[(Math.random()*GLYPHS.length)|0]); }
+    el.textContent=out; if(f%3===0) sfxTrans(); if(f<total) requestAnimationFrame(anim); else el.textContent=tgt; };
+  anim(); }
 
-// --- teacher announcement speech bubble (glitched during build) ---
-let speechGlitchTimer=null;
-function showSpeech(word){
-  const box=document.getElementById('speech');
-  const who=document.getElementById('speechWho');
-  const txt=document.getElementById('speechText');
-  who.textContent='MS. HUXLEY';
-  box.style.display='block';
-  if(speechGlitchTimer) clearInterval(speechGlitchTimer);
-  const render=()=>{ txt.innerHTML = `Today we're building a <span class="g">${glitchString(word)}</span>!`; };
-  render(); speechGlitchTimer=setInterval(render, 150);
-  // auto-hide after a bit (translator remains the clue)
-  clearTimeout(box._ht); box._ht=setTimeout(()=>hideSpeech(), 4200);
+// teacher announcement bubble (glitched) — brief
+let speechGlitchT=null;
+function showSpeech(word){ const box=document.getElementById('tip'); // unused guard
+  let bub=document.getElementById('announce');
+  if(!bub){ bub=document.createElement('div'); bub.id='announce';
+    bub.style.cssText='position:absolute;left:50%;top:14%;transform:translateX(-50%);z-index:30;pointer-events:none;max-width:70vw;';
+    document.getElementById('ui').appendChild(bub); }
+  bub.style.display='block';
+  const render=()=>{ bub.innerHTML=`<div style="background:#fff;color:#111;border:3px solid #000;padding:11px 15px;font-size:13px;box-shadow:5px 5px 0 rgba(0,0,0,.5);text-align:center;"><div style="font-size:8px;color:#b23;margin-bottom:5px;">MS. HUXLEY</div>Today we're drawing a <span style="color:#7a1fa0;">${glitchStr(word)}</span>!</div>`; };
+  render(); if(speechGlitchT) clearInterval(speechGlitchT); speechGlitchT=setInterval(render,150);
+  clearTimeout(bub._h); bub._h=setTimeout(()=>hideSpeech(),4200);
 }
-function hideSpeech(){
-  const box=document.getElementById('speech');
-  if(speechGlitchTimer){ clearInterval(speechGlitchTimer); speechGlitchTimer=null; }
-  box.style.display='none';
-}
-// transient toast (kid shouts / teacher one-liners)
-function speechPop(who, text){
-  const ui=document.getElementById('ui');
-  const el=document.createElement('div');
+function hideSpeech(){ const bub=document.getElementById('announce'); if(speechGlitchT){ clearInterval(speechGlitchT); speechGlitchT=null; } if(bub) bub.style.display='none'; }
+function speechPop(who,text){ const el=document.createElement('div');
   el.style.cssText='position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:35;pointer-events:none;max-width:60vw;';
   el.innerHTML=`<div style="background:#fff;color:#111;border:3px solid #000;padding:9px 13px;font-size:11px;box-shadow:5px 5px 0 rgba(0,0,0,.5);text-align:center;"><div style="font-size:8px;color:#b23;margin-bottom:4px;">${who.toUpperCase()}</div>${text}</div>`;
-  ui.appendChild(el);
-  el.animate([{opacity:0,transform:'translate(-50%,8px)'},{opacity:1,transform:'translate(-50%,0)'}],{duration:180});
-  setTimeout(()=>{ el.animate([{opacity:1},{opacity:0}],{duration:250}).onfinish=()=>el.remove(); }, 1900);
-}
-
-// --- control hints (context sensitive) ---
-function setHints(){
-  const c=document.getElementById('controlHints');
-  let rows=[];
-  if(G.phase==='build'){
-    if(G.lean!==0){
-      rows=[`<b>Release A/D</b> to stop peeking`];
-      if(G.sabotageUnlocked && !G.sabotageUsed) rows.push(`<span class="key">E</span> sabotage their build`);
-    } else {
-      rows=[
-        `<span class="key">1</span>-<span class="key">5</span> shape · click desk to place`,
-        `<span class="key">[</span><span class="key">]</span> size · <span class="key">R</span> rotate · <span class="key">F</span> flip · <span class="key">Z</span> undo`,
-        `hold <span class="key">A</span>/<span class="key">D</span> to peek`,
-      ];
-    }
-  } else if(G.phase==='showtell'){
-    rows=[`watch the grades · <span class="key">Esc</span> pause`];
-  }
-  c.innerHTML = rows.map(r=>`<div class="hint">${r}</div>`).join('');
-}
-
-// --- bang "!" markers over kid heads ---
-function projectToScreen(obj){
-  const v = (obj.isVector3? obj.clone() : new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld));
-  v.project(camera);
-  return { x:(v.x*0.5+0.5)*window.innerWidth, y:(-v.y*0.5+0.5)*window.innerHeight, visible:v.z<1 };
-}
-function showBang(e){
-  if(e._bang) return;
-  const el=document.createElement('div'); el.className='bang'; el.textContent='❗';
   document.getElementById('ui').appendChild(el);
-  e._bang=el;
-}
-function hideBang(e){ if(e._bang){ e._bang.remove(); e._bang=null; } }
-function updateBangs(){
-  for(const def of KID_DEFS){
-    const e=G.entities[def.name];
-    if(e._bang && e.head){
-      const top = new THREE.Vector3(0,0.45,0).add(new THREE.Vector3().setFromMatrixPosition(e.head.matrixWorld));
-      const p = projectToScreen(top);
-      e._bang.style.left=p.x+'px'; e._bang.style.top=(p.y-6)+'px';
-      e._bang.style.display = p.visible?'block':'none';
-    }
-  }
+  el.animate([{opacity:0,transform:'translate(-50%,8px)'},{opacity:1,transform:'translate(-50%,0)'}],{duration:180});
+  setTimeout(()=>{ el.animate([{opacity:1},{opacity:0}],{duration:250}).onfinish=()=>el.remove(); },1900); }
+
+function setHint(txt){ document.getElementById('hint').textContent=txt||''; }
+function updateHint(){
+  if(G.phase!=='draw'){ setHint(''); return; }
+  if(G.lean!==0){ setHint(G.sabotageUnlocked ? 'peeking — hold E to scribble on their work · release A/D to stop' : 'peeking — release A/D to stop'); }
+  else setHint('draw what the translator describes · hold A/D to peek');
 }
 
-// --- peeking label + tint ---
+// peek inset
 function updatePeekUI(){
-  const lbl=document.getElementById('peekLabel');
-  const tint=document.getElementById('screenTint');
-  if(G.phase==='build' && G.lean!==0){
-    lbl.style.display='block';
-    tint.style.background='rgba(228,71,59,0.12)';
-  } else {
-    lbl.style.display='none';
-    tint.style.background='rgba(228,71,59,0)';
-  }
+  const lbl=document.getElementById('peekLabel'), tint=document.getElementById('tint'), peek=document.getElementById('peek');
+  if(G.phase==='draw' && G.lean!==0){
+    lbl.style.display='block'; tint.style.background='rgba(232,80,63,0.1)'; peek.style.display='block';
+    const name=G.lean===-1?'Timmy':'Priya'; const e=G.entities[name];
+    const pc=document.getElementById('peekCanvas'); const ctx=pc.getContext('2d'); ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(e.paper.cvs,0,0,CW,CH,0,0,pc.width,pc.height);
+    document.getElementById('peekName').textContent=name+"'s paper";
+    document.getElementById('peekTag').textContent = G.sabotageUnlocked ? (G.sabotageUsed?'(already scribbled)':'hold E to scribble') : '';
+  } else { lbl.style.display='none'; tint.style.background='rgba(232,80,63,0)'; peek.style.display='none'; }
 }
 
-/* =========================== 11. GAME STATE =========================== */
+// bang markers
+function projectToScreen(v3){ const v=v3.clone().project(camera); return { x:(v.x*0.5+0.5)*window.innerWidth, y:(-v.y*0.5+0.5)*window.innerHeight, visible:v.z<1 }; }
+function showBang(e){ if(e._bang) return; const el=document.createElement('div'); el.className='bang'; el.textContent='!'; document.getElementById('ui').appendChild(el); e._bang=el; }
+function hideBang(e){ if(e._bang){ e._bang.remove(); e._bang=null; } }
+function updateBangs(){ for(const def of KID_DEFS){ const e=G.entities[def.name];
+  if(e._bang && e.head){ const top=new THREE.Vector3(0,0.5,0).add(new THREE.Vector3().setFromMatrixPosition(e.head.matrixWorld)); const p=projectToScreen(top);
+    e._bang.style.left=p.x+'px'; e._bang.style.top=(p.y-6)+'px'; e._bang.style.display=p.visible?'block':'none'; } } }
 
-const ST_ORDER = ['Timmy','Jojo','player','Bea','Priya'];
-const ST_SLOTX = { Timmy:-3.4, Jojo:-1.7, player:0, Bea:1.7, Priya:3.4 };
-const SHELF_Y = 1.2, SHELF_Z = -6.4;
+/* =========================== 11. GAME STATE / SHOW & TELL =========================== */
+const ST_ORDER=['Timmy','Jojo','player','Bea','Priya'];
+const GRADE_SUSP={A:-10,B:0,C:5,D:15,F:30};
+const RANK={F:0,D:1,C:2,B:3,A:4};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-function deskBuildOrigin(seat){ return new THREE.Vector3(seat.x, DESK_TOP+0.09, seat.z-0.03); }
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-
+function resetPapers(){ for(const k in G.entities){ clearPaper(G.entities[k].paper.ctx); G.entities[k].paper.tex.needsUpdate=true; } }
 function newGame(){
-  const entities = buildScene ? G.entities : null; // entities already built at boot
-  G.suspicion = 0;
-  G.grades = [];
-  G.suspLog = [];
-  G.periodIndex = 0;
-  G.peakSusp = 0;
-  G.caughtPeekCount = 0;
-  updateSuspicionUI();
-  // reset all builds
-  for(const key in G.entities){
-    const e=G.entities[key];
-    for(const pc of e.pieces) e.build.remove(pc.mesh);
-    e.pieces=[];
-    e.build.position.copy(deskBuildOrigin(e.seat));
-    e.moveTarget=null;
-  }
-  clearStickers();
+  G.suspicion=0; G.grades=[]; G.suspLog=[]; G.periodIndex=0; G.peakSusp=0; G.caughtPeek=0; usedWords=[];
+  undoStack.length=0; updateSuspUI(); resetPapers();
 }
-
-function startFlow(skipTut){
-  newGame();
-  if(skipTut){ G.periodIndex=1; startPeriod(); }
-  else { G.periodIndex=0; startPeriod(); }
-}
+function startFlow(skipTut){ newGame(); G.periodIndex=skipTut?1:0; startPeriod(); }
 
 function startPeriod(){
-  const period = PERIODS[G.periodIndex];
-  G.period = period;
-  G.tutorial = !!period.tutorial;
-  G.tutorialAllowCatch = false;
-  G.phase='card';
-  G.lean=0; G.leanKeys={l:false,r:false};
-  G.sabotageUnlocked = G.periodIndex>=2;
-  G.sabotageUsed=false;
-  G.canPause=true;
-  applyLight(period.lightName);
-  applyWindowTint(period.lightName);
-
-  // reset builds to desks
-  for(const key in G.entities){
-    const e=G.entities[key];
-    for(const pc of e.pieces) e.build.remove(pc.mesh);
-    e.pieces=[];
-    e.build.position.copy(deskBuildOrigin(e.seat));
-    e.moveTarget=null;
-  }
-  clearStickers();
-
-  // choose word + translator entry
-  let word = pick(period.pool);
-  if(word===G._lastWord && period.pool.length>1){ while(word===G._lastWord) word=pick(period.pool); }
-  G._lastWord = word;
-  const entries = WORDS[word].entries;
-  let eidx = G.tutorial ? 0 : (G.periodIndex>=4 ? entries.length-1 : (Math.random()*entries.length)|0);
-  G.pendingWord = word; G.pendingEntry = entries[eidx];
-
-  // camera back to seat
-  G.camPosTarget = new THREE.Vector3(0,3.2,5.4);
-  G.lookTarget = new THREE.Vector3(0,1.0,1.9);
-  teacherState.patrolling=false; teacherState.stTarget=null;
-  teacherState.pos.set(-4,0,-6); teacher && teacher.position.copy(teacherState.pos);
-
-  // period card
-  $('#pcClock').textContent = '🕘 '+period.clock;
-  $('#pcName').textContent = period.name;
-  const nw=$('#pcNew');
-  if(period.newMech){ nw.style.display='block'; nw.textContent=period.newMech; } else nw.style.display='none';
-  $('#pcHint').textContent = 'click to begin';
-  show('periodCard');
-  setToolbarVisible(false);
-  setHints();
-  updateGoalStrip();
+  const p=PERIODS[G.periodIndex]; G.period=p; G.tutorial=!!p.tutorial; G.tutorialAllowCatch=false;
+  G.phase='card'; G.lean=0; G.leanKeys={l:false,r:false};
+  G.sabotageUnlocked=G.periodIndex>=2; G.sabotageUsed=false; G.canPause=true;
+  G.drewSomething=false; G.hasPeeked=false; undoStack.length=0;
+  applyLight(p.light);
+  resetPapers();
+  const word=p.pick(); G.pendingWord=word; const entries=WORDS[word].e;
+  const eidx=G.tutorial?0:(G.periodIndex>=4?entries.length-1:(Math.random()*entries.length|0));
+  G.pendingDesc=entries[eidx];
+  G.camTargetPos=new THREE.Vector3(0,6.3,4.1); G.camTargetLook=new THREE.Vector3(0,0.85,3.15);
+  teacherState.patrolling=false; teacherState.pos.set(-4.4,0,-8); teacher&&teacher.position.copy(teacherState.pos);
+  $('#cardClock').textContent=p.clock; $('#cardName').textContent=p.name;
+  const nw=$('#cardNew'); if(p.newMech){ nw.style.display='block'; nw.textContent=p.newMech; } else nw.style.display='none';
+  show('card'); setDrawUIVisible(false); updateGoal();
 }
-
-function beginBuild(){
-  hide('periodCard');
-  G.phase='build';
-  G.timeLeft = G.period.timer;
-  setToolbarVisible(true);
-  setTranslator(G.pendingWord, G.pendingEntry);
-  kidsStartPeriod(G.pendingWord);
-  updateGoalStrip(); setHints(); updatePeekUI();
-  if(G.tutorial){
-    Tutorial.start(); // teacher patrol starts within tutorial steps
-  } else {
-    showSpeech(G.pendingWord);
-    teacherState.patrolling=true;
-  }
+function beginDraw(){
+  hide('card'); G.phase='draw'; G.timeLeft=G.period.timer;
+  setDrawUIVisible(true); setTranslator(G.pendingWord,G.pendingDesc); kidsStartPeriod(G.pendingWord);
+  updateGoal(); updateHint(); updatePeekUI();
+  if(G.tutorial) Tutorial.start();
+  else { showSpeech(G.pendingWord); teacherState.patrolling=true; }
 }
-
-function endBuildPhase(){
-  if(G.phase!=='build') return;
-  G.phase='showtell';
-  G.canPause=false;
-  setToolbarVisible(false);
-  hideSpeech();
-  if(ghost) ghost.visible=false;
-  G.lean=0; updatePeekUI(); setHints();
-  teacherState.patrolling=false;
-  setVignette(0,0);
+function endDrawPhase(){
+  if(G.phase!=='draw') return;
+  G.phase='showtell'; G.canPause=false; setDrawUIVisible(false); hideSpeech();
+  if(handGroup) handGroup.visible=false; G.lean=0; updatePeekUI(); updateHint();
+  teacherState.patrolling=false; setVignette(0,0); showGazeWarn(false);
   for(const def of KID_DEFS) hideBang(G.entities[def.name]);
   runShowTell();
 }
 
-// move builds to shelf, reveal, grade line, notes
-async function runShowTell(){
-  G.stToken = (G.stToken||0)+1;
-  const tok = G.stToken;
-  // arrange builds on shelf
+function buildGallery(){
+  const row=document.getElementById('galRow'); row.innerHTML=''; G.galEls={};
   for(const name of ST_ORDER){
     const e=G.entities[name];
-    e.moveTarget = new THREE.Vector3(ST_SLOTX[name], SHELF_Y, SHELF_Z);
+    const cell=document.createElement('div'); cell.className='galCell'; cell.id='gal_'+name;
+    const frame=document.createElement('div'); frame.className='galFrame';
+    const cv=document.createElement('canvas'); cv.width=CW; cv.height=CH; cv.className='galCanvas';
+    cv.getContext('2d').drawImage(e.paper.cvs,0,0);
+    const st=document.createElement('div'); st.className='galSticker';
+    frame.appendChild(cv); frame.appendChild(st);
+    const nm=document.createElement('div'); nm.className='galName'+(name==='player'?' you':''); nm.textContent=name==='player'?'You':name;
+    cell.appendChild(frame); cell.appendChild(nm); row.appendChild(cell);
+    G.galEls[name]={cell,st};
   }
-  // camera to face front
-  G.camPosTarget = new THREE.Vector3(0,3.0,-1.4);
-  G.lookTarget = new THREE.Vector3(0,1.5,SHELF_Z);
+}
 
+async function runShowTell(){
+  G.stToken=(G.stToken||0)+1; const tok=G.stToken;
+  buildGallery();
+  document.getElementById('galReveal').textContent='';
+  document.getElementById('galGo').style.display='none';
+  show('gallery');
+  await sleep(600); if(tok!==G.stToken) return;
+  // reveal
+  document.getElementById('galReveal').textContent='It was a '+G.pendingWord.toUpperCase()+'!';
+  unscrambleWord(G.pendingWord);
   await sleep(1400); if(tok!==G.stToken) return;
 
-  // reveal word
-  revealBanner(G.pendingWord);
-  unscrambleHumans(G.pendingWord);
-  await sleep(1700); if(tok!==G.stToken) return;
-
-  // pre-compute grades
-  const grades={};
-  for(const name of ST_ORDER){ grades[name]=gradeBuild(G.entities[name].pieces, G.pendingWord); }
-
-  // copycat check (player vs immediate neighbours)
+  const grades={}; for(const n of ST_ORDER) grades[n]=gradeDrawing(G.entities[n].paper.cvs,G.pendingWord);
+  // copycat
   let copycat=null;
-  for(const nb of ['Timmy','Priya']){
-    const sim=similarity(G.entities.player.pieces, G.entities[nb].pieces);
-    G.entities[nb]._sim = sim;
-    if(sim>=0.85 && (!copycat || sim>copycat.sim)) copycat={ name:nb, sim };
-  }
+  for(const nb of ['Timmy','Priya']){ const sim=similarity(G.entities.player.paper.cvs,G.entities[nb].paper.cvs); G.entities[nb]._sim=sim;
+    if(sim>=0.8 && (!copycat||sim>copycat.sim)) copycat={name:nb,sim}; }
 
-  // teacher walks the line
   for(const name of ST_ORDER){
     if(tok!==G.stToken) return;
-    teacherState.stTarget = new THREE.Vector3(ST_SLOTX[name]*0.72, 0, SHELF_Z+1.5);
-    await sleep(900); if(tok!==G.stToken) return;
-    const g=grades[name];
-    placeSticker(name, g.grade);
-    sfxGrade(g.grade==='A'||g.grade==='B');
-    const who='Ms. Huxley';
-    speechPop(who, `"${pick(GRADE_COMMENTS[g.grade])}"`);
-    await sleep(1400); if(tok!==G.stToken) return;
+    const el=G.galEls[name]; el.cell.classList.add('active');
+    await sleep(500); if(tok!==G.stToken) return;
+    const g=grades[name]; const good=g.grade==='A'||g.grade==='B';
+    el.st.textContent=g.grade; el.st.style.display='flex';
+    el.st.style.color=good?'#1d7a2e':(g.grade==='C'?'#9a6a00':'#b02418');
+    sfxGrade(good);
+    speechPop('Ms. Huxley',`"${pick(GRADE_COMMENTS[g.grade])}"`);
+    await sleep(1100); if(tok!==G.stToken) return;
+    el.cell.classList.remove('active');
   }
 
-  // apply player's outcome
-  const pg=grades.player;
-  G.peakSusp = Math.max(G.peakSusp, G.suspicion);
-  let notesExtra='';
-  let finalGrade=pg.grade, finalScore=pg.score;
-  const reasons=pg.reasons.slice();
-
-  if(copycat){
-    // cap at C
-    if(SCORE_RANK[finalGrade] > SCORE_RANK['C']){ finalGrade='C'; }
-    reasons.push(`✗ looks a lot like ${copycat.name}'s`);
-    speechPop(copycat.name, `"They copied me!"`);
-  }
-
+  // player outcome
+  const pg=grades.player; let finalGrade=pg.grade; const reasons=pg.reasons.slice();
+  if(copycat){ if(RANK[finalGrade]>RANK.C) finalGrade='C'; reasons.push('✗ looks a lot like '+copycat.name+"'s"); speechPop(copycat.name,'"They copied me!"'); }
+  let extra;
   if(!G.tutorial){
-    // grade -> suspicion
-    let delta = GRADE_SUSP[finalGrade];
-    // if any other kid scored worse than you, teacher's attention is elsewhere: halve the penalty
-    const anyWorse = ST_ORDER.some(n=>n!=='player' && grades[n].score < finalScore);
-    if(delta>0 && anyWorse) delta = Math.round(delta/2);
+    let delta=GRADE_SUSP[finalGrade];
+    const anyWorse=ST_ORDER.some(n=>n!=='player'&&grades[n].score<pg.score);
+    if(delta>0 && anyWorse) delta=Math.round(delta/2);
     const before=G.suspicion;
-    if(delta!==0) addSuspicion(delta, gradeReason(finalGrade));
-    if(copycat) addSuspicion(20, 'Copied '+copycat.name);
+    if(delta!==0) addSuspicion(delta,({A:'Got an A',B:'Got a B',C:'Only a C',D:'Got a D',F:'Got an F'})[finalGrade]);
+    if(copycat) addSuspicion(20,'Copied '+copycat.name);
     const after=G.suspicion;
-    notesExtra = `Suspicion ${after>=before?'+':''}${after-before} → now ${Math.round(after)}/100`;
-    if(anyWorse && GRADE_SUSP[finalGrade]>0) notesExtra+=' (eyes were on someone else!)';
-    G.grades.push({ period:G.period.name, word:G.pendingWord, grade:finalGrade, score:finalScore });
-    G.peakSusp = Math.max(G.peakSusp, G.suspicion);
-  } else {
-    notesExtra = `No suspicion in Homeroom — this one's a freebie.`;
-  }
-
-  if(G.suspicion>=100) return; // lose() already fired
-
-  showNotes(finalGrade, reasons, notesExtra);
+    extra=`Suspicion ${after>=before?'+':''}${Math.round(after-before)} → ${Math.round(after)}/100`;
+    if(anyWorse && GRADE_SUSP[finalGrade]>0) extra+=' (someone did worse!)';
+    G.grades.push({period:G.period.name,word:G.pendingWord,grade:finalGrade,score:pg.score});
+    G.peakSusp=Math.max(G.peakSusp,G.suspicion);
+  } else extra="Homeroom is just practice — no suspicion.";
+  if(G.suspicion>=100) return;
+  document.getElementById('galGo').style.display='inline-block';
+  G._notes={grade:finalGrade,reasons,extra};
 }
-
-const SCORE_RANK={F:0,D:1,C:2,B:3,A:4};
-const GRADE_SUSP={A:-10,B:0,C:5,D:15,F:30};
-function gradeReason(g){ return ({A:'Got an A',B:'Got a B',C:'Only a C',D:'Got a D',F:'Got an F'})[g]; }
-
-function showNotes(grade, reasons, extra){
-  $('#notesGrade').textContent = grade;
-  $('#notesGrade').style.color = (grade==='A'||grade==='B')?'#1d7a2e':(grade==='C'?'#9a6a00':'#b02418');
+function openNotes(){
+  if(!G._notes) return;
+  const {grade,reasons,extra}=G._notes;
+  $('#notesGrade').textContent=grade;
+  $('#notesGrade').style.color=(grade==='A'||grade==='B')?'#1d7a2e':(grade==='C'?'#9a6a00':'#b02418');
   const ul=$('#notesReasons'); ul.innerHTML='';
-  reasons.forEach(r=>{ const li=document.createElement('li'); li.className = r.startsWith('✓')?'ok':'no'; li.textContent=r; ul.appendChild(li); });
-  $('#notesSusp').textContent = extra;
-  show('notes');
+  reasons.forEach(r=>{ const li=document.createElement('li'); li.className=r.startsWith('✓')?'ok':'no'; li.textContent=r; ul.appendChild(li); });
+  $('#notesSusp').textContent=extra;
+  hide('gallery'); show('notes');
 }
+function nextPeriod(){ hide('notes'); hide('gallery'); G.periodIndex++; if(G.periodIndex>=PERIODS.length){ winGame(); return; } startPeriod(); }
 
-function nextPeriod(){
-  hide('notes');
-  G.periodIndex++;
-  if(G.periodIndex>=PERIODS.length){ winGame(); return; }
-  startPeriod();
-}
-
-// --- stickers ---
-function clearStickers(){ (G.stickers||[]).forEach(s=>s.el.remove()); G.stickers=[]; }
-function placeSticker(name, grade){
-  const el=document.createElement('div');
-  const good = grade==='A'||grade==='B';
-  el.style.cssText=`position:absolute;z-index:22;pointer-events:none;font-size:22px;color:${good?'#1d7a2e':(grade==='C'?'#9a6a00':'#b02418')};background:#fff;border:3px solid #000;width:38px;height:38px;display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 rgba(0,0,0,.5);transform:translate(-50%,-50%) rotate(${(Math.random()*20-10)|0}deg);`;
-  el.textContent=grade;
-  document.getElementById('ui').appendChild(el);
-  G.stickers = G.stickers||[];
-  G.stickers.push({ el, name });
-}
-function updateStickers(){
-  if(!G.stickers) return;
-  for(const s of G.stickers){
-    const e=G.entities[s.name];
-    const top = e.build.position.clone(); top.y += 1.4;
-    const p=projectToScreen(top);
-    s.el.style.left=p.x+'px'; s.el.style.top=p.y+'px';
-    s.el.style.display = p.visible?'flex':'none';
-  }
-}
-
-function revealBanner(word){
-  const ui=document.getElementById('ui');
-  const el=document.createElement('div');
-  el.style.cssText='position:absolute;left:50%;top:14%;transform:translateX(-50%);z-index:36;pointer-events:none;';
-  el.innerHTML=`<div style="background:#f4d24a;color:#201a00;border:3px solid #000;padding:12px 18px;font-size:18px;box-shadow:6px 6px 0 rgba(0,0,0,.5);">It was a <b>${word.toUpperCase()}</b>!</div>`;
-  ui.appendChild(el);
-  el.animate([{transform:'translate(-50%,-10px) scale(.8)',opacity:0},{transform:'translate(-50%,0) scale(1)',opacity:1}],{duration:300});
-  setTimeout(()=>{ el.animate([{opacity:1},{opacity:0}],{duration:400}).onfinish=()=>el.remove(); }, 2600);
-}
-
-function applyWindowTint(name){
-  const L=LIGHTS[name]||LIGHTS.morning;
-  for(const w of G_windows){ w.material = lambert(L.sky,{transparent:true,opacity:0.85}); }
-}
-
-// --- win / lose ---
 function winGame(){
   G.phase='win';
-  const rep=$('#report');
-  let html='<table><tr><td style="color:#8af;">PERIOD</td><td style="color:#8af;">BUILT</td><td class="g" style="color:#8af;">GRADE</td></tr>';
-  for(const g of G.grades){ html+=`<tr><td>${g.period}</td><td>${g.word}</td><td class="g">${g.grade}</td></tr>`; }
+  let html='<table><tr><td style="color:#8af;">PERIOD</td><td style="color:#8af;">DREW</td><td class="g" style="color:#8af;">GRADE</td></tr>';
+  for(const g of G.grades) html+=`<tr><td>${g.period}</td><td>${g.word}</td><td class="g">${g.grade}</td></tr>`;
   html+=`</table><div style="margin-top:10px;font-size:10px;color:var(--warn);">Peak suspicion: ${Math.round(G.peakSusp)}/100</div>`;
-  rep.innerHTML=html;
-  // keep builds on shelf, camera facing front
-  show('win');
+  $('#report').innerHTML=html; show('win');
 }
 function lose(reason){
-  if(G.phase==='lose') return;
-  G.phase='lose'; G.canPause=false;
-  G.stToken=(G.stToken||0)+1; // cancel any show&tell sequence
-  hide('notes');
-  const why = reason==='suspicion' ? "We need to talk about your… antennae." : "The principal would like a word.";
-  $('#loseWhy').textContent = why;
-  // top reasons from log
-  const tally={};
-  for(const l of G.suspLog){ if(l.amount>0) tally[l.reason]=(tally[l.reason]||0)+l.amount; }
+  if(G.phase==='lose') return; G.phase='lose'; G.canPause=false; G.stToken=(G.stToken||0)+1;
+  hide('notes'); hide('gallery');
+  $('#loseWhy').textContent = reason==='suspicion'?"We need to talk about your... antennae.":"The principal would like a word.";
+  const tally={}; for(const l of G.suspLog){ if(l.amount>0) tally[l.reason]=(tally[l.reason]||0)+l.amount; }
   const top=Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  let txt = top.length? ('What gave you away: '+top.map(t=>`${t[0]} (+${t[1]})`).join(', ')+'.') : 'Suspicion hit 100.';
-  if(G.caughtPeekCount) txt += ` You were caught peeking ${G.caughtPeekCount}×.`;
-  $('#loseReasons').textContent = txt;
-  show('lose');
+  let txt=top.length?('What gave you away: '+top.map(t=>`${t[0]} (+${t[1]})`).join(', ')+'.'):'Suspicion hit 100.';
+  if(G.caughtPeek) txt+=` Caught peeking ${G.caughtPeek}x.`;
+  $('#loseReasons').textContent=txt; show('lose');
 }
 
-/* ------------------ camera / peek ------------------ */
+/* camera / peek / scribble */
 function updateCamera(dt){
-  if(!G.camPosCur){ G.camPosCur=camera.position.clone(); G.lookCur=new THREE.Vector3(0,1.0,1.9); }
-  let posT=G.camPosTarget, lookT=G.lookTarget;
-  if(G.phase==='build' || G.phase==='card'){
-    if(G.lean===-1){ posT=new THREE.Vector3(-1.25,3.05,5.1); lookT=new THREE.Vector3(-2.2,1.05,2.7); }
-    else if(G.lean===1){ posT=new THREE.Vector3(1.25,3.05,5.1); lookT=new THREE.Vector3(2.2,1.05,2.7); }
-    else { posT=new THREE.Vector3(0,3.2,5.4); lookT=new THREE.Vector3(0,1.0,1.9); }
+  if(!G.camPosCur){ G.camPosCur=camera.position.clone(); G.lookCur=new THREE.Vector3(0,0.85,3.15); }
+  let pos=G.camTargetPos, look=G.camTargetLook;
+  if(G.phase==='draw'||G.phase==='card'){
+    if(G.lean===-1){ pos=new THREE.Vector3(-2.5,5.9,4.1); look=new THREE.Vector3(-3.0,0.85,3.35); }
+    else if(G.lean===1){ pos=new THREE.Vector3(2.5,5.9,4.1); look=new THREE.Vector3(3.0,0.85,3.35); }
+    else { pos=new THREE.Vector3(0,6.3,4.1); look=new THREE.Vector3(0,0.85,3.15); }
   }
-  if(posT) G.camPosCur.lerp(posT, 1-Math.pow(0.001,dt));
-  if(lookT) G.lookCur.lerp(lookT, 1-Math.pow(0.001,dt));
-  camera.position.copy(G.camPosCur);
-  camera.lookAt(G.lookCur);
+  const f=1-Math.pow(0.0015,dt);
+  if(pos) G.camPosCur.lerp(pos,f); if(look) G.lookCur.lerp(look,f);
+  camera.position.copy(G.camPosCur); camera.lookAt(G.lookCur);
 }
-
-function setLean(side){
-  if(G.phase!=='build'){ return; }
+function setLean(side){ if(G.phase!=='draw') return;
   if(side!==0 && !G.hasPeeked){ G.hasPeeked=true; if(G.tutorial) Tutorial.notify('peek'); }
-  G.lean=side;
-  updatePeekUI(); setHints();
-}
+  G.lean=side; updatePeekUI(); updateHint(); }
 function recomputeLean(){ setLean(G.leanKeys.r?1:(G.leanKeys.l?-1:0)); }
 
-/* ------------------ sabotage ------------------ */
-function teacherSeesPlayer(){
-  const pseat=new THREE.Vector3(SEATS.player.x,0,SEATS.player.z);
-  const toP=pseat.clone().sub(teacherState.pos); toP.y=0;
-  if(toP.length()>CONE_RANGE) return false;
-  return toP.normalize().dot(teacherState.forward) > CONE_HALF;
-}
-function doSabotage(){
-  if(G.phase!=='build' || G.lean===0 || !G.sabotageUnlocked || G.sabotageUsed) return;
-  const name = G.lean===-1?'Timmy':'Priya';
-  const e=G.entities[name];
-  if(e.pieces.length===0) return;
-  G.sabotageUsed=true; setHints();
-  if(Math.random()<0.5){
-    // knock off top piece
-    let ti=0,ty=-Infinity;
-    e.pieces.forEach((p,i)=>{ if(p.local.y>ty){ty=p.local.y;ti=i;} });
-    const pc=e.pieces.splice(ti,1)[0]; e.build.remove(pc.mesh);
-  } else {
-    // swap a colour
-    const pc=pick(e.pieces);
-    const nc=pick(COLOR_KEYS);
-    pc.color=nc; pc.mesh.material=lambert(COLORS[nc]);
-  }
-  sfxUndo();
-  const seen = e.glanceState==='look' || e.glanceState==='windup' || teacherSeesPlayer();
-  if(seen){
-    addSuspicion(35, 'Sabotage seen');
-    speechPop(name, `"Hey! ${G.entities.player.name} wrecked my build!"`);
-    sfxCaught();
-  } else {
-    speechPop('you', `*heh heh*`);
-  }
+function doScribble(){
+  if(G.phase!=='draw'||G.lean===0||!G.sabotageUnlocked||G.sabotageUsed) return;
+  const name=G.lean===-1?'Timmy':'Priya'; const e=G.entities[name];
+  G.sabotageUsed=true; updatePeekUI(); updateHint();
+  // scribble several dark random strokes across their paper
+  const ctx=e.paper.ctx; ctx.strokeStyle='#201a18'; ctx.lineWidth=10; ctx.lineCap='round';
+  for(let s=0;s<3;s++){ ctx.beginPath(); let x=60+Math.random()*(CW-120), y=60+Math.random()*(CH-120); ctx.moveTo(x,y);
+    for(let k=0;k<6;k++){ x+=(Math.random()-0.5)*120; y+=(Math.random()-0.5)*120; x=THREE.MathUtils.clamp(x,10,CW-10); y=THREE.MathUtils.clamp(y,10,CH-10); ctx.lineTo(x,y); } ctx.stroke(); }
+  e.paper.tex.needsUpdate=true; sfxScribble();
+  const seen = e.glanceState==='look'||e.glanceState==='windup'||teacherSeesPlayer();
+  if(seen){ addSuspicion(35,'Scribbling seen'); speechPop(name,`"Hey! ${G.entities.player.name==='You'?'The new kid':'They'} wrecked my paper!"`); sfxCaught(); }
+  else speechPop('you','*heh heh*');
 }
 
-/* ------------------ pause ------------------ */
-function togglePause(){
-  if(G.phase!=='build' || !G.canPause){ if(document.getElementById('pause').classList.contains('show')){ resumeGame(); } return; }
-  if(G.paused){ resumeGame(); } else { G.paused=true; show('pause'); }
-}
+/* pause */
+function togglePause(){ if(G.phase!=='draw'||!G.canPause){ if(document.getElementById('pause').classList.contains('show')) resumeGame(); return; }
+  if(G.paused) resumeGame(); else { G.paused=true; show('pause'); } }
 function resumeGame(){ G.paused=false; hide('pause'); }
-function quitToTitle(){ resumeGame(); G.phase='title'; G.stToken=(G.stToken||0)+1; clearStickers(); hideSpeech(); setToolbarVisible(false); document.getElementById('tip').style.display='none'; Tutorial.active=false; show('title'); refreshSkipBtn(); }
+function quitToTitle(){ resumeGame(); backToTitle(); }
+function backToTitle(){ G.phase='title'; G.paused=false; G.stToken=(G.stToken||0)+1; hideSpeech();
+  setDrawUIVisible(false); document.getElementById('tip').style.display='none'; Tutorial.active=false; hide('gallery'); hide('notes');
+  resetPapers(); G.camTargetPos=new THREE.Vector3(0,6.3,4.1); G.camTargetLook=new THREE.Vector3(0,0.85,3.15);
+  refreshSkipBtn(); show('title'); }
 
-/* ------------------ input ------------------ */
+/* =========================== 12. DEBUG + SNAPSHOT =========================== */
+function toggleDebug(){ if(!G) return; G.debug=!G.debug; document.getElementById('debug').classList.toggle('show',G.debug); }
+let dbgCache='';
+function updateDebug(){
+  G._dbgClock=(G._dbgClock||0)+1;
+  if(G._dbgClock%18===0){
+    let g=null; try{ g=gradeDrawing(G.entities.player.paper.cvs,G.pendingWord||G.word); }catch(e){}
+    let s=`== DEBUG ==\nphase:${G.phase} period:${G.period?G.period.name:'-'}\nSECRET: ${G.pendingWord||G.word||'-'}\n`;
+    s+=`time:${G.timeLeft!=null?G.timeLeft.toFixed(1):'-'} susp:${Math.round(G.suspicion)} lean:${G.lean} sab:${G.sabotageUnlocked?(G.sabotageUsed?'used':'ready'):'locked'}\n`;
+    if(g){ s+=`\nYOUR GRADE: ${g.score} (${g.grade}) ink:${g._dbg?g._dbg.inkFrac.toFixed(3):'-'} mess:${g._dbg?g._dbg.mess.toFixed(2):'-'}\n`;
+      s+='reasons: '+g.reasons.join(' | ')+'\n'; if(g._dbg) s+='parts: ['+g._dbg.partScores.map(x=>x.toFixed(2)).join(', ')+']\n'; }
+    s+=`\nCOPYCAT:\n`; for(const nb of ['Timmy','Priya']){ try{ const sim=similarity(G.entities.player.paper.cvs,G.entities[nb].paper.cvs); s+=`  ${nb}: ${(sim*100|0)}%${sim>=0.8?' COPY!':''}\n`; }catch(e){} }
+    s+=`\nKIDS:\n`; for(const d of KID_DEFS){ const e=G.entities[d.name]; s+=`  ${d.name}(${d.side}) ${e.glanceState} t=${(e.glanceState==='idle'?e.glanceTimer:e.glanceClock).toFixed(1)} bad:${e.badDraw?'Y':'n'} step ${e.step}/${e.plan?e.plan.length:0}\n`; }
+    s+=`\nTEACHER: pos ${teacherState.pos.x.toFixed(1)},${teacherState.pos.z.toFixed(1)} patrol:${teacherState.patrolling} sees:${teacherSeesPlayer()} cone±${(CONE_HALF_ANG*57.3|0)}deg r${CONE_RANGE}\n`;
+    s+=`\nLOG:\n`; G.suspLog.slice(-6).forEach(l=>{ s+=`  t${l.t}: ${l.amount>0?'+':''}${l.amount} ${l.reason} -> ${Math.round(l.total)}\n`; });
+    dbgCache=s;
+  }
+  document.getElementById('debug').textContent=dbgCache;
+}
+// clean undithered snapshot of a drawing (reserved for a future AI grader)
+function renderCleanSnapshot(entity){
+  const cvs = entity&&entity.paper?entity.paper.cvs : (entity&&entity.cvs?entity.cvs:null);
+  if(!cvs) return null;
+  const out=document.createElement('canvas'); out.width=512; out.height=512; const ctx=out.getContext('2d');
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,512,512); ctx.imageSmoothingEnabled=false; ctx.drawImage(cvs,0,0,512,512);
+  return out.toDataURL('image/png');
+}
+window.renderCleanSnapshot=renderCleanSnapshot;
+
+/* =========================== 13. BOOT =========================== */
+function refreshSkipBtn(){ let seen=false; try{ seen=localStorage.getItem('fdoe_seenTut')==='1'; }catch(e){}
+  document.getElementById('skipTutBtn').style.display=seen?'inline-block':'none'; }
+const BRUSH_ORDER=['small','med','large'];
+function cycleBrush(dir){ let i=BRUSH_ORDER.indexOf(tool.brush||'med'); i=THREE.MathUtils.clamp(i+dir,0,2); setBrush(BRUSH_ORDER[i]); }
+
 function initInput(){
-  window.addEventListener('keydown', e=>{
-    if(e.repeat){ return; }
+  window.addEventListener('keydown',e=>{
     const k=e.key.toLowerCase();
     if(k==='`'){ toggleDebug(); return; }
     if(k==='escape'){ togglePause(); return; }
-    if(G.paused) return;
-    if(G.phase==='build' && !G.tutorialBlocksBuild){
-      if(k>='1'&&k<='5'){ setShape(SHAPES[parseInt(k)-1]); }
-      else if(k==='['){ nudgeSize(-1); }
-      else if(k===']'){ nudgeSize(1); }
-      else if(k==='r'){ rotateTool(); }
-      else if(k==='f'){ flipTool(); }
-      else if(k==='z'){ undoPlayerPiece(); }
-      else if(k==='a'){ G.leanKeys.l=true; recomputeLean(); }
-      else if(k==='d'){ G.leanKeys.r=true; recomputeLean(); }
-      else if(k==='e'){ doSabotage(); }
+    if(e.repeat) return; if(G.paused) return;
+    if(G.phase==='draw'){
+      if(k>='1'&&k<='8'){ setColor(COLOR_KEYS[parseInt(k)-1]); }
+      else if(k==='['){ cycleBrush(-1); } else if(k===']'){ cycleBrush(1); }
+      else if(k==='x'){ setErase(); } else if(k==='z'){ undoDraw(); } else if(k==='c'){ clearDraw(); }
+      else if(k==='a'){ G.leanKeys.l=true; recomputeLean(); } else if(k==='d'){ G.leanKeys.r=true; recomputeLean(); }
+      else if(k==='e'){ doScribble(); }
     }
   });
-  window.addEventListener('keyup', e=>{
-    const k=e.key.toLowerCase();
-    if(k==='a'){ G.leanKeys.l=false; recomputeLean(); }
-    else if(k==='d'){ G.leanKeys.r=false; recomputeLean(); }
-  });
-  // pointer
-  canvas.addEventListener('pointermove', e=>{
-    const r=canvas.getBoundingClientRect();
-    pointerNDC.x = ((e.clientX-r.left)/r.width)*2-1;
-    pointerNDC.y = -((e.clientY-r.top)/r.height)*2+1;
-    pointerOnCanvas=true;
-  });
-  canvas.addEventListener('pointerleave', ()=>{ pointerOnCanvas=false; });
-  canvas.addEventListener('pointerdown', e=>{
-    if(e.button!==0) return;
-    audio(); // resume on gesture
-    if(G.phase==='build' && !G.paused){ placePlayerPiece(); }
-  });
-  canvas.addEventListener('wheel', e=>{
-    if(G.phase==='build'){ e.preventDefault(); nudgeSize(e.deltaY<0?1:-1); }
-  }, {passive:false});
-  // translator replay
-  document.getElementById('translator').addEventListener('click', ()=>{ audio(); replayTranslator(); });
+  window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase();
+    if(k==='a'){ G.leanKeys.l=false; recomputeLean(); } else if(k==='d'){ G.leanKeys.r=false; recomputeLean(); } });
+  canvas.addEventListener('pointermove',e=>{ const r=canvas.getBoundingClientRect();
+    pointerNDC.x=((e.clientX-r.left)/r.width)*2-1; pointerNDC.y=-((e.clientY-r.top)/r.height)*2+1; pointerOnCanvas=true; if(drawing) moveStroke(); });
+  canvas.addEventListener('pointerdown',e=>{ if(e.button!==0) return; audio(); if(G.phase==='draw'&&!G.paused){ const r=canvas.getBoundingClientRect();
+    pointerNDC.x=((e.clientX-r.left)/r.width)*2-1; pointerNDC.y=-((e.clientY-r.top)/r.height)*2+1; startStroke(); } });
+  window.addEventListener('pointerup',()=>endStroke());
+  canvas.addEventListener('pointerleave',()=>{ pointerOnCanvas=false; });
+  canvas.addEventListener('wheel',e=>{ if(G.phase==='draw'){ e.preventDefault(); cycleBrush(e.deltaY<0?1:-1); } },{passive:false});
+  document.getElementById('translator').addEventListener('click',()=>{ audio(); replayTranslator(); });
+}
+function wireButtons(){
+  $('#startBtn').onclick=()=>{ audio(); hide('title'); playIntro(()=>startFlow(false)); };
+  $('#howBtn').onclick=()=>show('pause');
+  $('#skipTutBtn').onclick=()=>{ audio(); hide('title'); startFlow(true); };
+  $('#introSkip').onclick=()=>{ audio(); skipIntro(); };
+  $('#resumeBtn').onclick=()=>resumeGame();
+  $('#quitBtn').onclick=()=>quitToTitle();
+  $('#galGo').onclick=()=>openNotes();
+  $('#notesBtn').onclick=()=>nextPeriod();
+  $('#winRestart').onclick=()=>{ hide('win'); backToTitle(); };
+  $('#loseRestart').onclick=()=>{ hide('lose'); backToTitle(); };
+  $('#tipBtn').onclick=()=>Tutorial.advance();
+  document.getElementById('card').addEventListener('click',()=>{ if(G.phase==='card'){ audio(); beginDraw(); } });
 }
 
-/* ------------------ main loop ------------------ */
 let lastT=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
-  let dt=(now-lastT)/1000; lastT=now;
-  if(dt>0.1) dt=0.1;
+  let dt=(now-lastT)/1000; lastT=now; if(dt>0.1) dt=0.1;
   if(G){
-    if(!G.paused && (G.phase==='build'||G.phase==='showtell'||G.phase==='card')){
+    if(!G.paused && (G.phase==='draw'||G.phase==='showtell'||G.phase==='card')){
       G.clock+=dt;
-      if(G.phase==='build' && G.period.timer>0 && !G.tutorial){
-        G.timeLeft-=dt;
-        if(G.timeLeft<=0){ G.timeLeft=0; updateGoalStrip(); endBuildPhase(); }
-      }
-      if(G.phase==='build'){ updateKids(dt); updateTeacher(dt); }
-      if(G.phase==='showtell'){ updateShowTellMotion(dt); }
+      if(G.phase==='draw' && G.period.timer>0 && !G.tutorial){ G.timeLeft-=dt; if(G.timeLeft<=0){ G.timeLeft=0; updateGoal(); endDrawPhase(); } }
+      if(G.phase==='draw'){ updateKids(dt); updateTeacher(dt); }
     }
-    // scripted tutorial glance completion
-    if(G.scriptGlance){ const t=G.entities.Timmy; if(t.glanceState==='idle'){ G.scriptGlance=false; G.scriptedGlanceDone=true; } }
+    if(G.scriptGlance){ const t=G.entities.Timmy; if(t.glanceState==='idle'){ G.scriptGlance=false; G.scriptGlanceDone=true; } }
     Tutorial.update();
-    updateGhost();
-    updateCamera(dt);
-    updateBangs();
-    updateStickers();
-    updatePeekUI();
-    if(G.phase==='build') updateGoalStrip();
+    updateHand(); updateCamera(dt); updateBangs(); updatePeekUI(); updateHint();
+    if(G.phase==='draw') updateGoal();
     if(G.suspicion!=null) G.peakSusp=Math.max(G.peakSusp||0,G.suspicion);
     if(G.debug) updateDebug();
   }
   if(renderer) renderFrame();
 }
 
-function updateShowTellMotion(dt){
-  const f=1-Math.pow(0.004,dt);
-  for(const name of ST_ORDER){
-    const e=G.entities[name];
-    if(e.moveTarget) e.build.position.lerp(e.moveTarget, f);
-  }
-  if(teacherState.stTarget && teacher){
-    teacherState.pos.lerp(teacherState.stTarget, f);
-    teacher.position.copy(teacherState.pos);
-    const look=new THREE.Vector3(teacherState.pos.x,0,SHELF_Z).sub(teacherState.pos); look.y=0;
-    if(look.lengthSq()>0.001){ teacherState.forward.lerp(look.normalize(),0.2); teacher.rotation.y=Math.atan2(teacherState.forward.x,teacherState.forward.z); }
-  }
-}
-
-/* =========================== 12. DEBUG + renderCleanSnapshot =========================== */
-
-function toggleDebug(){
-  if(!G) return;
-  G.debug=!G.debug;
-  document.getElementById('debug').classList.toggle('show', G.debug);
-}
-function updateDebug(){
-  const el=document.getElementById('debug');
-  const p=G.entities.player;
-  let g=null;
-  try{ g = gradeBuild(p.pieces, G.pendingWord||G.word); }catch(e){}
-  let s = '';
-  s += `== FIRST DAY DEBUG ==\n`;
-  s += `phase: ${G.phase}  period: ${G.period?G.period.name:'-'}\n`;
-  s += `SECRET WORD: ${G.pendingWord||G.word||'-'}\n`;
-  s += `entry: ${(G.pendingEntry||'').slice(0,54)}\n`;
-  s += `time: ${G.timeLeft!=null?G.timeLeft.toFixed(1):'-'}  pieces: ${p.pieces.length}\n`;
-  s += `suspicion: ${Math.round(G.suspicion)}  lean: ${G.lean}  sab: ${G.sabotageUnlocked?(G.sabotageUsed?'used':'ready'):'locked'}\n`;
-  if(g){
-    s += `\n-- YOUR SCORE: ${g.score} (${g.grade}) variant#${g._debug?g._debug.vi:'-'}\n`;
-    s += `extras: ${g._debug?g._debug.extras:'-'}  ratio:${g._debug&&g._debug.ratioBad?g._debug.ratioBad:'ok'}\n`;
-    if(g._debug) g._debug.partInfo.forEach(pi=>{
-      s += `  part[${pi.part.band}/${pi.part.colors.join(',')}] filled ${pi.filledReq}/${pi.req} best ${pi.best.toFixed(2)}\n`;
-    });
-  }
-  s += `\n-- COPYCAT similarity --\n`;
-  for(const nb of ['Timmy','Priya']){ const sim=similarity(p.pieces, G.entities[nb].pieces); s+=`  ${nb}: ${(sim*100).toFixed(0)}%${sim>=0.85?' COPY!':''}\n`; }
-  s += `\n-- KIDS glance --\n`;
-  for(const def of KID_DEFS){ const e=G.entities[def.name]; s+=`  ${def.name}(${def.side}): ${e.glanceState} t=${(e.glanceState==='idle'?e.glanceTimer:e.glanceClock).toFixed(1)} pcs=${e.pieces.length}\n`; }
-  s += `\n-- TEACHER --\n`;
-  s += `  pos ${teacherState.pos.x.toFixed(1)},${teacherState.pos.z.toFixed(1)} fwd ${teacherState.forward.x.toFixed(1)},${teacherState.forward.z.toFixed(1)}\n`;
-  s += `  patrol:${teacherState.patrolling} coneHalf≈${(Math.acos(CONE_HALF)*57.3|0)}° range ${CONE_RANGE} sees:${teacherSeesPlayer()}\n`;
-  s += `\n-- SUSPICION LOG --\n`;
-  G.suspLog.slice(-6).forEach(l=>{ s+=`  t${l.t}: ${l.amount>0?'+':''}${l.amount} ${l.reason} → ${Math.round(l.total)}\n`; });
-  el.textContent=s;
-}
-
-// renders one build undithered at 512x512 from a fixed 3/4 angle on a plain background.
-// Not used in-game yet — reserved for a future AI grader. Returns a PNG data URL.
-function renderCleanSnapshot(build){
-  const pieces = Array.isArray(build) ? build : (build&&build.pieces) || [];
-  const snapScene=new THREE.Scene();
-  snapScene.background=new THREE.Color(0xcfd6e0);
-  snapScene.add(new THREE.AmbientLight(0xffffff,0.7));
-  const dl=new THREE.DirectionalLight(0xffffff,0.9); dl.position.set(3,6,4); snapScene.add(dl);
-  const grp=new THREE.Group();
-  const mn=new THREE.Vector3(Infinity,Infinity,Infinity), mx=new THREE.Vector3(-Infinity,-Infinity,-Infinity);
-  for(const pc of pieces){ mn.min(pc.local); mx.max(pc.local); }
-  const center=mn.clone().add(mx).multiplyScalar(0.5);
-  for(const pc of pieces){
-    const m=makePiece(pc.shape,pc.color,pc.size);
-    m.position.copy(pc.local).sub(center); m.position.y += (mx.y-mn.y)/2 + 0.1;
-    orientMesh(m,pc.yaw,pc.inverted); grp.add(m);
-  }
-  snapScene.add(grp);
-  const radius=Math.max(1.2, mn.distanceTo(mx)*0.7+1);
-  const cam=new THREE.PerspectiveCamera(40,1,0.1,100);
-  cam.position.set(radius*1.4, radius*1.2, radius*1.4);
-  cam.lookAt(0,(mx.y-mn.y)/2,0);
-  const rt=new THREE.WebGLRenderTarget(512,512);
-  renderer.setRenderTarget(rt); renderer.clear(); renderer.render(snapScene,cam); renderer.setRenderTarget(null);
-  const buf=new Uint8Array(512*512*4);
-  renderer.readRenderTargetPixels(rt,0,0,512,512,buf);
-  const cv=document.createElement('canvas'); cv.width=512; cv.height=512;
-  const ctx=cv.getContext('2d'); const img=ctx.createImageData(512,512);
-  for(let y=0;y<512;y++){ const sy=511-y; for(let x=0;x<512;x++){ const d=(y*512+x)*4, srcp=(sy*512+x)*4;
-    img.data[d]=buf[srcp]; img.data[d+1]=buf[srcp+1]; img.data[d+2]=buf[srcp+2]; img.data[d+3]=buf[srcp+3]; } }
-  ctx.putImageData(img,0,0);
-  rt.dispose();
-  return cv.toDataURL('image/png');
-}
-window.renderCleanSnapshot = renderCleanSnapshot; // exposed for future use
-
-/* =========================== 13. BOOT =========================== */
-
-function refreshSkipBtn(){
-  let seen=false; try{ seen = localStorage.getItem('fdoe_seenTut')==='1'; }catch(e){}
-  document.getElementById('skipTutBtn').style.display = seen?'inline-block':'none';
-}
-
-function wireButtons(){
-  $('#startBtn').onclick=()=>{ audio(); hide('title'); playIntro(()=>startFlow(false)); };
-  $('#howBtn').onclick=()=>{ show('pause'); };
-  $('#skipTutBtn').onclick=()=>{ audio(); hide('title'); startFlow(true); };
-  $('#introSkip').onclick=()=>{ audio(); skipIntro(); };
-  $('#resumeBtn').onclick=()=>{ resumeGame(); };
-  $('#quitBtn').onclick=()=>{ quitToTitle(); };
-  $('#notesBtn').onclick=()=>{ nextPeriod(); };
-  $('#winRestart').onclick=()=>{ hide('win'); backToTitle(); };
-  $('#loseRestart').onclick=()=>{ hide('lose'); backToTitle(); };
-  $('#tipBtn').onclick=()=>{ Tutorial.advance(); };
-  document.getElementById('periodCard').addEventListener('click', ()=>{ if(G.phase==='card'){ audio(); beginBuild(); } });
-}
-function backToTitle(){
-  G.phase='title'; G.paused=false; clearStickers(); hideSpeech();
-  setToolbarVisible(false); document.getElementById('tip').style.display='none'; Tutorial.active=false;
-  // reset builds
-  for(const key in G.entities){ const e=G.entities[key]; for(const pc of e.pieces) e.build.remove(pc.mesh); e.pieces=[]; e.build.position.copy(deskBuildOrigin(e.seat)); }
-  G.camPosTarget=new THREE.Vector3(0,3.2,5.4); G.lookTarget=new THREE.Vector3(0,1.0,1.9);
-  refreshSkipBtn(); show('title');
-}
-
 function boot(){
   try{
-    G = { phase:'title', clock:0, suspicion:0, grades:[], suspLog:[], lean:0, leanKeys:{l:false,r:false},
-          paused:false, debug:false, peakSusp:0, entities:null, timeLeft:0, period:PERIODS[0], tutorial:false };
-    window.__fdoe = G; // debug handle
-    window.__dev = { // lightweight automation/inspection hooks (no effect on normal play)
-      startFlow, beginBuild, endBuildPhase, nextPeriod, gradeBuild, similarity, addSuspicion,
-      THREE, WORDS, tool, state:()=>G,
-    };
-    initGeometry();
-    initGeometryBounds();
+    G={ phase:'title', clock:0, suspicion:0, grades:[], suspLog:[], lean:0, leanKeys:{l:false,r:false},
+        paused:false, debug:false, peakSusp:0, entities:null, timeLeft:0, period:PERIODS[0], tutorial:false };
+    window.__fdoe=G;
     initRenderer();
-    G.entities = buildScene();
-    makeGhost();
-    initTeacher();
+    G.entities=buildScene();
+    window.__dev={ startFlow, beginDraw, endDrawPhase, nextPeriod, openNotes, gradeDrawing, similarity, addSuspicion, WORDS, COLORS, COLOR_KEYS, tool, teacherState, state:()=>G, clearPaper:()=>clearPaper(G.entities.player.paper.ctx) };
     applyLight('morning');
-    buildToolbar();
-    setToolbarVisible(false);
-    initInput();
-    wireButtons();
-    resize();
-    window.addEventListener('resize', ()=>{ resize(); if(Tutorial.active){} });
-    updateSuspicionUI();
-    updateGoalStrip();
-    refreshSkipBtn();
-    // ready
+    buildCrayons(); setDrawUIVisible(false);
+    initInput(); wireButtons(); resize();
+    window.addEventListener('resize',resize);
+    updateSuspUI(); updateGoal(); refreshSkipBtn();
     document.getElementById('loading').style.display='none';
-    show('title');
-    lastT=performance.now();
-    requestAnimationFrame(loop);
-  }catch(err){
-    console.error(err);
-    const le=document.getElementById('loadErr');
-    if(le) le.textContent = 'Error: '+(err&&err.message?err.message:err);
-  }
+    show('title'); lastT=performance.now(); requestAnimationFrame(loop);
+  }catch(err){ console.error(err); const le=document.getElementById('loadErr'); if(le) le.textContent='Error: '+(err&&err.message?err.message:err); }
 }
 boot();
 </script>
